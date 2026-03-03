@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Rudimentos · MigueGuay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #080f1a;
+      --bg2:     #0c1726;
+      --card:    #0f1e30;
+      --card2:   #132337;
+      --surface: #172840;
+      --accent:  #38bdf8;
+      --accent2: #0ea5e9;
+      --R:       #f87171;
+      --L:       #60a5fa;
+      --text:    #e1eaf4;
+      --muted:   #6080a0;
+      --border:  rgba(148,163,184,0.12);
+      --border2: rgba(148,163,184,0.22);
+      --bronze:  #c97c2e;
+      --silver:  #a8bac6;
+      --gold:    #f5b820;
+      --plat:    #d8e4ee;
+      --diamond: #7dd3fc;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse 90% 45% at 50% -5%, rgba(14,165,233,0.13) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 30% at 90% 90%, rgba(56,189,248,0.04) 0%, transparent 55%);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* ── Nav ── */
+    nav {
+      display: flex; align-items: center; gap: 0.55rem;
+      padding: 0.85rem 1.75rem;
+      background: rgba(8,15,26,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 20;
+    }
+    nav a { color: var(--muted); text-decoration: none; font-size: 0.78rem; display: flex; align-items: center; gap: 0.3rem; transition: color 0.15s; }
+    nav a:hover { color: var(--text); }
+    nav .sep   { color: rgba(148,163,184,0.2); font-size: 0.7rem; }
+    nav .title { color: var(--text); font-weight: 600; font-size: 0.86rem; letter-spacing: -0.015em; }
+    nav .nav-icon { display: none; }
+    /* ── Layout ── */
+    .app { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    /* ── Progress banner ── */
+    .prog-banner {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .pb-top { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+    .prog-banner .pb-label { display: none; }
+    .prog-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .prog-pill {
+      display: flex; align-items: center; gap: 0.3rem;
+      font-size: 0.71rem; font-weight: 500;
+      padding: 0.18rem 0.55rem;
+      border-radius: 2rem;
+      border: 1px solid transparent;
+    }
+    .prog-pill .pp-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .prog-pill.bronze   { color: var(--bronze); border-color: rgba(201,124,46,0.3);  background: rgba(201,124,46,0.08); }
+    .prog-pill.silver   { color: var(--silver); border-color: rgba(168,186,198,0.3); background: rgba(168,186,198,0.07); }
+    .prog-pill.gold     { color: var(--gold);   border-color: rgba(245,184,32,0.3);  background: rgba(245,184,32,0.08); }
+    .prog-pill.platinum { color: var(--plat);   border-color: rgba(216,228,238,0.25);background: rgba(216,228,238,0.06); }
+    .prog-pill.diamond  { color: var(--diamond);border-color: rgba(125,211,252,0.3); background: rgba(125,211,252,0.08); }
+    .prog-pill.bronze  .pp-dot { background: var(--bronze); }
+    .prog-pill.silver  .pp-dot { background: var(--silver); }
+    .prog-pill.gold    .pp-dot { background: var(--gold); }
+    .prog-pill.platinum .pp-dot { background: var(--plat); }
+    .prog-pill.diamond .pp-dot { background: var(--diamond); }
+    .prog-bar-row { display: flex; gap: 3px; height: 4px; border-radius: 3px; overflow: hidden; }
+    .pb-seg { flex: 1; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .pb-seg-fill { height: 100%; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+    .pb-seg.bronze   .pb-seg-fill { background: var(--bronze); }
+    .pb-seg.silver   .pb-seg-fill { background: var(--silver); }
+    .pb-seg.gold     .pb-seg-fill { background: var(--gold); }
+    .pb-seg.platinum .pb-seg-fill { background: var(--plat); }
+    .pb-seg.diamond  .pb-seg-fill { background: var(--diamond); }
+    /* ── View tabs ── */
+    .view-tabs {
+      display: flex;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 0.65rem;
+      padding: 3px;
+      margin-bottom: 1.25rem;
+      width: fit-content;
+      gap: 2px;
+    }
+    .view-tab {
+      padding: 0.35rem 1.1rem;
+      border-radius: 0.45rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.77rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+    .view-tab.active {
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    }
+    .view-tab:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.04); }
+    /* ── Category tabs ── */
+    .cat-tabs-wrap { margin-bottom: 0.8rem; }
+    .cat-tabs-label { display: none; }
+    .cat-tabs { display: flex; gap: 0.3rem; overflow-x: auto; scrollbar-width: none; flex-wrap: wrap; }
+    .cat-tabs::-webkit-scrollbar { display: none; }
+    .cat-tab {
+      flex-shrink: 0;
+      padding: 0.32rem 0.9rem;
+      border-radius: 2rem;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .cat-tab.active {
+      background: var(--accent);
+      color: #061422;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+    .cat-tab:hover:not(.active) { color: var(--text); border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.06); }
+    /* ── Rudiment chips ── */
+    .chips-panel { margin-bottom: 1.25rem; padding: 0.5rem 0 0; }
+    .chips-panel-label { display: none; }
+    .rud-chips { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+    .rud-chip {
+      padding: 0.28rem 0.7rem;
+      border-radius: 0.45rem;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 400;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 0.28rem;
+      white-space: nowrap;
+    }
+    .rud-chip.active {
+      background: rgba(56,189,248,0.12);
+      color: var(--accent);
+      border-color: rgba(56,189,248,0.35);
+      font-weight: 600;
+    }
+    .rud-chip:hover:not(.active) { color: var(--text); border-color: var(--border2); background: var(--card2); }
+    .chip-lvl { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    /* ── Tier view ── */
+    .tier-block { margin-bottom: 2rem; }
+    .tier-title {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .tier-title .tier-num {
+      color: var(--accent);
+      font-size: 0.62rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .tier-title::after { content:''; flex:1; height:1px; background: var(--border); }
+    /* ── Main card ── */
+    .main-card {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: 1.1rem;
+      overflow: hidden;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.04) inset;
+    }
+    .main-card-inner { padding: 1.5rem; }
+    .rud-header { margin-bottom: 0.9rem; }
+    .rud-cat-label {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+      opacity: 0.85;
+    }
+    .rud-title-row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+    .rud-name { font-size: 1.45rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.025em; }
+    .rud-tier-badge { display: none; }
+    .rud-desc { display: none; }
+    /* ── Level strip ── */
+    .level-strip {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      margin-bottom: 1.25rem;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+      border-radius: 0.65rem;
+      padding: 0.4rem 0.5rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex-wrap: wrap;
+    }
+    .level-strip::-webkit-scrollbar { display: none; }
+    .level-strip .ls-label { display: none; }
+    .lvl-btn {
+      padding: 0.28rem 0.75rem;
+      border-radius: 0.45rem;
+      border: 1px solid transparent;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.71rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 0.28rem;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .lvl-btn .bpm-hint { font-size: 0.6rem; opacity: 0.55; font-weight: 400; }
+    .lvl-btn.bronze   { color: var(--bronze);  border-color: rgba(201,124,46,0.25); }
+    .lvl-btn.silver   { color: var(--silver);  border-color: rgba(168,186,198,0.25); }
+    .lvl-btn.gold     { color: var(--gold);    border-color: rgba(245,184,32,0.25); }
+    .lvl-btn.platinum { color: var(--plat);    border-color: rgba(216,228,238,0.2); }
+    .lvl-btn.diamond  { color: var(--diamond); border-color: rgba(125,211,252,0.25); }
+    .lvl-btn:not(.reached) { opacity: 0.38; }
+    .lvl-btn.bronze.reached   { background: rgba(201,124,46,0.12);  border-color: rgba(201,124,46,0.4); }
+    .lvl-btn.silver.reached   { background: rgba(168,186,198,0.1);  border-color: rgba(168,186,198,0.38); }
+    .lvl-btn.gold.reached     { background: rgba(245,184,32,0.12);  border-color: rgba(245,184,32,0.4); }
+    .lvl-btn.platinum.reached { background: rgba(216,228,238,0.08); border-color: rgba(216,228,238,0.3); }
+    .lvl-btn.diamond.reached  { background: rgba(125,211,252,0.12); border-color: rgba(125,211,252,0.4); }
+    .lvl-btn:hover { opacity: 1; }
+    .lvl-btn .check { font-size: 0.68rem; }
+    .lvl-sep { display: none; }
+    /* ── Staff ── */
+    .staff-section-label { display: none; }
+    .staff-wrap {
+      overflow-x: auto;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 1.1rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .staff-wrap svg { display: block; }
+    /* ── Sticking ── */
+    .sticking-label { display: none; }
+    .sticking { display: flex; gap: 0.3rem; flex-wrap: wrap; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.06em; margin-bottom: 1rem; align-items: baseline; line-height: 1.8; }
+    .sR { color: var(--R); } .sL { color: var(--L); } .sg { font-size: 0.62rem; vertical-align: super; opacity: 0.7; }
+    .ssep { color: rgba(148,163,184,0.18); padding: 0 0.15rem; font-weight: 300; }
+    .legend { display: flex; gap: 1.1rem; font-size: 0.68rem; color: var(--muted); flex-wrap: wrap; padding-top: 0.65rem; border-top: 1px solid var(--border); opacity: 0.7; }
+    .legend span { display: flex; align-items: center; gap: 0.28rem; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; }
+    /* ── Favorites ── */
+    .fav-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 0.1rem 0.2rem;
+      color: var(--muted);
+      transition: color 0.15s, transform 0.15s;
+      flex-shrink: 0;
+    }
+    .fav-btn:hover { color: var(--text); transform: scale(1.2); }
+    .fav-btn.active { color: var(--gold); }
+    .favs-empty {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.7;
+      padding: 0.75rem 0;
+    }
+    /* ── Card navigation arrows ── */
+    .card-nav-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .card-nav-wrap .main-card { flex: 1; min-width: 0; }
+    .card-arrow {
+      display: none;
+      flex-shrink: 0;
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--border2);
+      background: var(--card);
+      color: var(--muted);
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      line-height: 1;
+      padding: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .card-arrow:hover:not(:disabled) { color: var(--text); border-color: rgba(56,189,248,0.4); background: var(--card2); }
+    .card-arrow:disabled { opacity: 0.18; cursor: default; }
+    .view-favs .card-arrow { display: flex; }
+    .fav-counter {
+      display: none;
+      font-size: 0.67rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+      white-space: nowrap;
+      margin-left: auto;
+    }
+    .view-favs .fav-counter { display: inline; }
+    .fav-start-row {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 1.1rem;
+      margin-bottom: 0.85rem;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      border-radius: 0.65rem;
+      padding: 0.55rem 0.85rem;
+    }
+    .view-favs .fav-start-row { display: flex; }
+    .fav-start-label {
+      font-size: 0.69rem;
+      color: var(--text);
+      font-weight: 600;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+      margin-right: 0.15rem;
+    }
+    .fav-start-btn {
+      padding: 0.28rem 0.75rem;
+      border-radius: 2rem;
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,0.04);
+      font-family: inherit;
+      font-size: 0.73rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.14s;
+      white-space: nowrap;
+    }
+    .fav-start-btn.bronze   { color: var(--bronze); }
+    .fav-start-btn.silver   { color: var(--silver); }
+    .fav-start-btn.gold     { color: var(--gold); }
+    .fav-start-btn.platinum { color: var(--plat); }
+    .fav-start-btn.diamond  { color: var(--diamond); }
+    .fav-start-btn.active.bronze   { border-color: rgba(201,124,46,0.6);  background: rgba(201,124,46,0.16); font-weight: 700; }
+    .fav-start-btn.active.silver   { border-color: rgba(168,186,198,0.55);background: rgba(168,186,198,0.13); font-weight: 700; }
+    .fav-start-btn.active.gold     { border-color: rgba(245,184,32,0.6);  background: rgba(245,184,32,0.16); font-weight: 700; }
+    .fav-start-btn.active.platinum { border-color: rgba(216,228,238,0.46);background: rgba(216,228,238,0.11);font-weight: 700; }
+    .fav-start-btn.active.diamond  { border-color: rgba(125,211,252,0.6); background: rgba(125,211,252,0.16);font-weight: 700; }
+    .fav-start-btn:hover:not(.active) { background: rgba(255,255,255,0.08); border-color: var(--border2); }
+    /* ── Rudiment transition ── */
+    @keyframes rud-out {
+      from { opacity:1; transform:translateX(0) scale(1); }
+      to   { opacity:0; transform:translateX(-24px) scale(0.982); }
+    }
+    @keyframes rud-in {
+      from { opacity:0; transform:translateX(30px) scale(0.985); }
+      to   { opacity:1; transform:translateX(0) scale(1); }
+    }
+    @keyframes rud-out-r {
+      from { opacity:1; transform:translateX(0) scale(1); }
+      to   { opacity:0; transform:translateX(24px) scale(0.982); }
+    }
+    @keyframes rud-in-r {
+      from { opacity:0; transform:translateX(-30px) scale(0.985); }
+      to   { opacity:1; transform:translateX(0) scale(1); }
+    }
+    .main-card.rud-out   { animation:rud-out   0.18s cubic-bezier(0.4,0,1,1) forwards; pointer-events:none; }
+    .main-card.rud-in    { animation:rud-in    0.28s cubic-bezier(0,0,0.2,1) forwards; }
+    .main-card.rud-out-r { animation:rud-out-r 0.18s cubic-bezier(0.4,0,1,1) forwards; pointer-events:none; }
+    .main-card.rud-in-r  { animation:rud-in-r  0.28s cubic-bezier(0,0,0.2,1) forwards; }
+    /* ── Audio player ── */
+    .audio-player {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .ap-header { display: none; }
+    .ap-header-dot { display: none; }
+    .ap-tracks { display: flex; gap: 0.25rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .ap-track {
+      padding: 0.22rem 0.6rem;
+      border-radius: 2rem;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.7rem;
+      font-weight: 400;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .ap-track.active {
+      border-color: rgba(56,189,248,0.4);
+      color: var(--accent);
+      background: rgba(56,189,248,0.1);
+      font-weight: 600;
+    }
+    .ap-track:hover:not(.active) { color: var(--text); border-color: var(--border2); }
+    .ap-controls { display: flex; align-items: center; gap: 0.8rem; }
+    .ap-play {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      color: #061422;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, transform 0.1s;
+      line-height: 1;
+      box-shadow: 0 0 16px rgba(56,189,248,0.3);
+    }
+    .ap-play:hover { background: #7dd3fc; transform: scale(1.06); }
+    .ap-play.playing { background: var(--R); color: #fff; box-shadow: 0 0 16px rgba(248,113,113,0.3); }
+    .ap-play.playing:hover { background: #fca5a5; }
+    .ap-progress-wrap {
+      flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 2px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .ap-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 2px; width: 0%; pointer-events: none; transition: width 0.25s linear; }
+    .ap-time { font-size: 0.67rem; color: var(--muted); white-space: nowrap; min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+    .ap-unavail { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+
+    /* ── Page transitions ── */
+    @keyframes pageEnter {
+      from { opacity: 0; transform: scale(0.97) translateY(8px); filter: blur(3px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
+    }
+    @keyframes pageExit {
+      from { opacity: 1; transform: scale(1);    filter: blur(0);   }
+      to   { opacity: 0; transform: scale(0.98); filter: blur(3px); }
+    }
+    /* Start invisible; JS adds .page-loaded after first paint to trigger enter */
+    body {
+      opacity: 0;
+    }
+    body.page-loaded {
+      animation: pageEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    body.page-exit {
+      animation: pageExit 0.32s ease-out both;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Inicio
+  </a>
+  <span class="sep">/</span>
+  <span class="title">Rudimentos</span>
+</nav>
+<div class="app">
+  <div class="prog-banner" id="progBanner">
+    <div class="pb-top">
+      <span class="pb-label">Tu progreso</span>
+      <div class="prog-pills">
+        <span class="prog-pill bronze"  id="ppBronze" ><span class="pp-dot"></span>Bronce <span id="cBronze">0</span>/40</span>
+        <span class="prog-pill silver"  id="ppSilver" ><span class="pp-dot"></span>Plata <span id="cSilver">0</span>/40</span>
+        <span class="prog-pill gold"    id="ppGold"   ><span class="pp-dot"></span>Oro <span id="cGold">0</span>/40</span>
+        <span class="prog-pill platinum"id="ppPlat"   ><span class="pp-dot"></span>Platino <span id="cPlat">0</span>/40</span>
+        <span class="prog-pill diamond" id="ppDiamond"><span class="pp-dot"></span>Diamante <span id="cDiamond">0</span>/40</span>
+      </div>
+    </div>
+    <div class="prog-bar-row" id="progBarRow">
+      <div class="pb-seg bronze" ><div class="pb-seg-fill" id="pbBronze"  style="width:0%"></div></div>
+      <div class="pb-seg silver" ><div class="pb-seg-fill" id="pbSilver"  style="width:0%"></div></div>
+      <div class="pb-seg gold"   ><div class="pb-seg-fill" id="pbGold"    style="width:0%"></div></div>
+      <div class="pb-seg platinum"><div class="pb-seg-fill" id="pbPlat"   style="width:0%"></div></div>
+      <div class="pb-seg diamond"><div class="pb-seg-fill" id="pbDiamond" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div class="view-tabs">
+    <button class="view-tab active" id="vtCateg" onclick="setView('categ')">Por categoría</button>
+    <button class="view-tab"        id="vtTier"  onclick="setView('tier')">Por nivel de aprendizaje</button>
+    <button class="view-tab"        id="vtFavs"  onclick="setView('favs')">Favoritos</button>
+  </div>
+  <div id="categPanel">
+    <div class="cat-tabs-wrap">
+      <div class="cat-tabs" id="catTabs"></div>
+    </div>
+    <div class="chips-panel">
+      <div class="rud-chips" id="rudChipsCateg"></div>
+    </div>
+  </div>
+  <div id="tierPanel" style="display:none">
+    <div id="tierBlocks"></div>
+  </div>
+  <div id="favsPanel" style="display:none"></div>
+  <div class="fav-start-row" id="favStartRow"></div>
+  <div class="card-nav-wrap">
+    <button class="card-arrow" id="cardPrev" title="Anterior favorito" onclick="navFav(-1)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="main-card">
+      <div class="main-card-inner">
+    <div class="rud-header">
+      <div class="rud-cat-label" id="rudCatLabel"></div>
+      <div class="rud-title-row">
+        <div class="rud-name" id="rudName"></div>
+        <span class="rud-tier-badge" id="rudTierBadge"></span>
+        <span class="fav-counter" id="favCounter"></span>
+        <button class="fav-btn" id="favBtn" title="Añadir a favoritos">☆</button>
+      </div>
+    </div>
+    <div class="rud-desc" id="rudDesc"></div>
+    <div class="level-strip" id="levelStrip">
+      <span class="ls-label">Nivel:</span>
+    </div>
+    <div class="audio-player" id="audioPlayer" style="display:none"></div>
+    <div class="staff-wrap" id="staffWrap"></div>
+    <div class="sticking"   id="sticking"></div>
+    <div class="legend">
+      <span><div class="dot" style="background:var(--R)"></div> Derecha (R)</span>
+      <span><div class="dot" style="background:var(--L)"></div> Izquierda (L)</span>
+      <span style="font-size:0.68rem;font-style:italic;color:var(--muted)">Minúscula = grace note</span>
+    </div>
+    </div> <!-- /main-card-inner -->
+  </div> <!-- /main-card -->
+    <button class="card-arrow" id="cardNext" title="Siguiente favorito" onclick="navFav(1)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div> <!-- /card-nav-wrap -->
+</div> <!-- /app -->
+<script>
+const LEVELS=[
+  {key:'bronze',  name:'Bronce',  bpm:60,  cls:'bronze'},
+  {key:'silver',  name:'Plata',   bpm:80,  cls:'silver'},
+  {key:'gold',    name:'Oro',     bpm:100, cls:'gold'},
+  {key:'platinum',name:'Platino', bpm:130, cls:'platinum'},
+  {key:'diamond', name:'Diamante',bpm:160, cls:'diamond'},
+];
+let rudProgress=JSON.parse(localStorage.getItem('rudProgress')||'{}');
+function saveProgress(){localStorage.setItem('rudProgress',JSON.stringify(rudProgress));}
+let rudFavs=new Set(JSON.parse(localStorage.getItem('rudFavs')||'[]'));
+function saveFavs(){localStorage.setItem('rudFavs',JSON.stringify([...rudFavs]));}
+function toggleFav(){
+  if(!currentRud)return;
+  if(rudFavs.has(currentRud.id))rudFavs.delete(currentRud.id);
+  else rudFavs.add(currentRud.id);
+  saveFavs();updateFavBtn();
+  if(currentView==='favs'){buildFavsPanel();updateFavArrows();}
+}
+function updateFavBtn(){
+  const btn=document.getElementById('favBtn');
+  if(!btn||!currentRud)return;
+  const on=rudFavs.has(currentRud.id);
+  btn.textContent=on?'★':'☆';
+  btn.classList.toggle('active',on);
+  btn.title=on?'Quitar de favoritos':'Añadir a favoritos';
+}
+function updateFavArrows(){
+  if(currentView!=='favs'){return;}
+  const sorted=getFavsSorted();
+  const ci=sorted.findIndex(r=>r.id===currentRud.id);
+  const prev=document.getElementById('cardPrev');
+  const next=document.getElementById('cardNext');
+  const counter=document.getElementById('favCounter');
+  if(prev)prev.disabled=(ci<=0);
+  if(next)next.disabled=(ci<0||ci>=sorted.length-1);
+  if(counter)counter.textContent=sorted.length?(ci+1)+'/'+sorted.length:'';
+}
+function navFav(dir){
+  const sorted=getFavsSorted();
+  const ci=sorted.findIndex(r=>r.id===currentRud.id);
+  const target=sorted[ci+dir];
+  if(!target)return;
+  apFavsAutoPlay=!!(apAudio && !apAudio.paused);
+  selectRud(target, dir);
+}
+function buildFavsPanel(){
+  const el=document.getElementById('favsPanel');
+  const favRuds=RUDIMENTS.filter(r=>rudFavs.has(r.id));
+  if(!favRuds.length){
+    el.innerHTML='<div class="favs-empty">Aún no tienes favoritos. Pulsa ☆ en cualquier rudimento para guardarlo aquí.</div>';
+    return;
+  }
+  el.innerHTML='';
+  const wrap=document.createElement('div');wrap.className='rud-chips';
+  favRuds.forEach(r=>wrap.appendChild(makeChip(r)));
+  el.appendChild(wrap);
+}
+function buildFavStartRow(){
+  const row=document.getElementById('favStartRow');
+  if(!row)return;
+  row.innerHTML='';
+  const lbl=document.createElement('span');lbl.className='fav-start-label';lbl.textContent='Empezar desde:';
+  row.appendChild(lbl);
+  LEVELS.forEach(lvl=>{
+    const btn=document.createElement('button');
+    btn.className='fav-start-btn '+lvl.cls+(lvl.key===apFavsStartKey?' active':'');
+    btn.textContent=lvl.name;
+    btn.onclick=()=>{
+      apFavsStartKey=lvl.key;
+      row.querySelectorAll('.fav-start-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+    row.appendChild(btn);
+  });
+}
+function levelIndex(key){return key?LEVELS.findIndex(l=>l.key===key):-1;}
+function levelColor(key){const l=LEVELS.find(l=>l.key===key);if(!l)return 'transparent';const map={bronze:'#cd7f32',silver:'#b0bec5',gold:'#fbbf24',platinum:'#e0e7ef',diamond:'#7dd3fc'};return map[l.key]||'transparent';}
+
+const RR=(o={})=>({h:'R',...o});
+const LL=(o={})=>({h:'L',...o});
+const RA=(o={})=>({h:'R',a:true,...o});
+const LA=(o={})=>({h:'L',a:true,...o});
+
+const RUDIMENTS=[
+  {id:1, tier:1,cat:'Rolls de un golpe',   name:'Single Stroke Roll',        desc:'La base de toda la percusión. Alterna R e I de forma continua y uniforme.',                                          pattern:[[RA(),LL(),RR(),LL()],[RR(),LL(),RR(),LL()]]},
+  {id:4, tier:1,cat:'Rolls de dos golpes', name:'Double Stroke Open Roll',   desc:'Dos rebotes iguales por mano. Controla el rebote y mantén la dinámica uniforme.',                                   pattern:[[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()]]},
+  {id:15,tier:1,cat:'Rolls de buzz',       name:'Multiple Bounce Roll',      desc:'Roll de buzz (z). Deja que el palo rebote libremente con presión controlada.',                                       pattern:[[{h:'R',b:true}],[{h:'L',b:true}],[{h:'R',b:true}],[{h:'L',b:true}]]},
+  {id:16,tier:1,cat:'Diddles',             name:'Single Paradiddle',         desc:'El rudimento más importante: RLRR / LRLL. Base de todos los paradiddles.',                                           pattern:[[RA(),LL(),RR(),RR()],[LA(),RR(),LL(),LL()]]},
+  {id:20,tier:1,cat:'Flams',              name:'Flam',                      desc:'Grace note justo antes del golpe principal. La grace va en la mano contraria.',                                        pattern:[[{h:'R',a:true,g:'l'}],[{h:'L',a:true,g:'r'}]]},
+  {id:31,tier:1,cat:'Drags',              name:'Drag (Ruff)',                desc:'Dos grace notes antes del golpe principal: llR / rrL.',                                                               pattern:[[{h:'R',d:'l'}],[{h:'L',d:'r'}]]},
+  {id:2, tier:2,cat:'Rolls de un golpe',   name:'Single Stroke Four',        desc:'Cuatro golpes alternados con acento en el primero.',                                                                  pattern:[[RA(),LL(),RR(),LL()]]},
+  {id:3, tier:2,cat:'Rolls de un golpe',   name:'Single Stroke Seven',       desc:'Siete golpes alternados.',                                                                                            pattern:[[RA(),LL(),RR(),LL()],[RR(),LL(),RA()],[LA(),RR(),LL(),RR()],[LL(),RR(),LA()]]},
+  {id:17,tier:2,cat:'Diddles',             name:'Double Paradiddle',         desc:'RLRLRR / LRLRLL.',                                                                                                    pattern:[[RA(),LL(),RR(),LL(),RR(),RR()],[LA(),RR(),LL(),RR(),LL(),LL()]]},
+  {id:18,tier:2,cat:'Diddles',             name:'Triple Paradiddle',         desc:'RLRLRLRR / LRLRLRLL.',                                                                                                pattern:[[RA(),LL(),RR(),LL(),RR(),LL(),RR(),RR()],[LA(),RR(),LL(),RR(),LL(),RR(),LL(),LL()]]},
+  {id:19,tier:2,cat:'Diddles',             name:'Single Paradiddle-Diddle',  desc:'RLRRLL / LRLLRR.',                                                                                                   pattern:[[RA(),LL(),RR(),RR(),LL(),LL()],[LA(),RR(),LL(),LL(),RR(),RR()]]},
+  {id:5, tier:2,cat:'Rolls de dos golpes', name:'Five Stroke Roll',          desc:'RRLLR / LLRRL.',                                                                                                      pattern:[[RR(),RR(),LL(),LL()],[RA()],[LL(),LL(),RR(),RR()],[LA()]]},
+  {id:7, tier:2,cat:'Rolls de dos golpes', name:'Seven Stroke Roll',         desc:'',                                                                                                                    pattern:[[RR(),RR(),LL(),LL()],[RR(),RR(),LA()],[LL(),LL(),RR(),RR()],[LL(),LL(),RA()]]},
+  {id:9, tier:2,cat:'Rolls de dos golpes', name:'Nine Stroke Roll',          desc:'',                                                                                                                    pattern:[[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()],[RA()]]},
+  {id:21,tier:2,cat:'Flams',              name:'Flam Accent',               desc:'Tresillo de corcheas con grace note en el golpe acentuado.',                                                           pattern:[[{h:'R',a:true,g:'l'},LL(),LL()],[{h:'L',a:true,g:'r'},RR(),RR()]]},
+  {id:22,tier:2,cat:'Flams',              name:'Flam Tap',                  desc:'lR rR / rL lL.',                                                                                                      pattern:[[{h:'R',a:true,g:'l'},RR()],[{h:'L',a:true,g:'r'},LL()]]},
+  {id:34,tier:2,cat:'Drags',              name:'Lesson 25',                 desc:'llR llR >R R / rrL rrL >L L.',                                                                                        pattern:[[{h:'R',d:'l'},{h:'L',d:'l'},RA(),RR()],[{h:'L',d:'r'},{h:'R',d:'r'},LA(),LL()]]},
+  {id:32,tier:2,cat:'Drags',              name:'Single Drag Tap',           desc:'Drag acentuado + tap sencillo.',                                                                                       pattern:[[{h:'R',a:true,d:'l'},LL()],[{h:'L',a:true,d:'r'},RR()]]},
+  {id:11,tier:3,cat:'Rolls de dos golpes', name:'Thirteen Stroke Roll',      desc:'',                                                                                                                    pattern:[[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()],[RA()]]},
+  {id:12,tier:3,cat:'Rolls de dos golpes', name:'Fifteen Stroke Roll',       desc:'',                                                                                                                    pattern:[[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()],[RR(),RR(),LA()]]},
+  {id:13,tier:3,cat:'Rolls de dos golpes', name:'Seventeen Stroke Roll',     desc:'',                                                                                                                    pattern:[[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()],[RA()]]},
+  {id:6, tier:3,cat:'Rolls de dos golpes', name:'Six Stroke Roll',           desc:'',                                                                                                                    pattern:[[RA(),LL(),LL()],[RR(),RR(),LA()]]},
+  {id:10,tier:3,cat:'Rolls de dos golpes', name:'Ten Stroke Roll',           desc:'',                                                                                                                    pattern:[[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()],[RR(),LA()]]},
+  {id:8, tier:3,cat:'Rolls de dos golpes', name:'Eleven Stroke Roll',        desc:'',                                                                                                                    pattern:[[RR(),RR(),LL(),LL()],[RR(),RR(),LL(),LL()],[RR(),RR(),LA()]]},
+  {id:35,tier:3,cat:'Drags',              name:'Single Dragadiddle',        desc:'Paradiddle con drag en el segundo golpe.',                                                                             pattern:[[RA(),RR(),{h:'L',d:'l'},RR()],[LA(),LL(),{h:'R',d:'r'},LL()]]},
+  {id:36,tier:3,cat:'Drags',              name:'Drag Paradiddle #1',        desc:'',                                                                                                                    pattern:[[RA(),{h:'L',d:'l'},RR(),LL(),RR(),RR()],[LA(),{h:'R',d:'r'},LL(),RR(),LL(),LL()]]},
+  {id:37,tier:3,cat:'Drags',              name:'Drag Paradiddle #2',        desc:'',                                                                                                                    pattern:[[RA(),{h:'L',d:'l'},{h:'R',d:'l'},LL(),RR(),LL(),RR(),RR()],[LA(),{h:'R',d:'r'},{h:'L',d:'r'},RR(),LL(),RR(),LL(),LL()]]},
+  {id:25,tier:3,cat:'Flams',              name:'Single Flammed Mill',       desc:'lR rL L R / rL lR R L.',                                                                                              pattern:[[{h:'R',g:'l'},{h:'L',g:'r'},LL(),RR()],[{h:'L',g:'r'},{h:'R',g:'l'},RR(),LL()]]},
+  {id:28,tier:3,cat:'Flams',              name:'Swiss Army Triplet',        desc:'Tresillo con flam: lRR / rLL.',                                                                                       pattern:[[{h:'R',a:true,g:'l'},RR(),LL()],[{h:'L',a:true,g:'r'},LL(),RR()]]},
+  {id:23,tier:3,cat:'Flams',              name:'Flamacue',                  desc:'lR L R >L / rL R L >R.',                                                                                              pattern:[[{h:'R',g:'l',a:true},LL(),RR(),RA()],[{h:'L',g:'r',a:true},RR(),LL(),LA()]]},
+  {id:14,tier:4,cat:'Rolls de tres golpes',name:'Triple Stroke Roll',        desc:'Tres golpes por mano con rebote controlado: RRR LLL.',                                                                pattern:[[RR(),RR(),RR()],[LL(),LL(),LL()],[RR(),RR(),RR()],[LL(),LL(),LL()]]},
+  {id:24,tier:4,cat:'Flams',              name:'Flam Paradiddle',           desc:'Single paradiddle con grace note en el primer golpe.',                                                                 pattern:[[{h:'R',a:true,g:'l'},LL(),RR(),RR()],[{h:'L',a:true,g:'r'},RR(),LL(),LL()]]},
+  {id:27,tier:4,cat:'Flams',              name:'Pataflafla',                desc:'Cuatro flams alternando la mano de la grace note.',                                                                    pattern:[[{h:'R',g:'l'},{h:'L',g:'r'},{h:'R',g:'l'},{h:'L',g:'r'}],[{h:'L',g:'r'},{h:'R',g:'l'},{h:'L',g:'r'},{h:'R',g:'l'}]]},
+  {id:33,tier:4,cat:'Drags',              name:'Double Drag Tap',           desc:'Dos drags + tap sencillo.',                                                                                            pattern:[[{h:'R',d:'l'},{h:'L',d:'l'},RR()],[{h:'L',d:'r'},{h:'R',d:'r'},LL()]]},
+  {id:26,tier:4,cat:'Flams',              name:'Flam Paradiddle-Diddle',    desc:'Paradiddle-diddle con flam en el primer golpe.',                                                                       pattern:[[{h:'R',a:true,g:'l'},LL(),RR(),RR(),LL(),LL()],[{h:'L',a:true,g:'r'},RR(),LL(),LL(),RR(),RR()]]},
+  {id:38,tier:4,cat:'Drags',              name:'Single Ratamacue',          desc:'Drag + RL acentuado al final.',                                                                                        pattern:[[{h:'R',d:'l'},LL(),RR(),LA()],[{h:'L',d:'r'},RR(),LL(),RA()]]},
+  {id:39,tier:4,cat:'Drags',              name:'Double Ratamacue',          desc:'Dos drags + RL acentuado.',                                                                                            pattern:[[{h:'R',d:'l'},{h:'L',d:'l'},RR(),LL(),RA()],[{h:'L',d:'r'},{h:'R',d:'r'},LL(),RR(),LA()]]},
+  {id:40,tier:4,cat:'Drags',              name:'Triple Ratamacue',          desc:'Tres drags + RL acentuado.',                                                                                           pattern:[[{h:'R',d:'l'},{h:'L',d:'l'},{h:'R',d:'l'},LL(),RR(),LA()],[{h:'L',d:'r'},{h:'R',d:'r'},{h:'L',d:'r'},RR(),LL(),RA()]]},
+  {id:29,tier:4,cat:'Flams',              name:'Inverted Flam Tap',         desc:'La grace note está en la misma mano que el golpe principal.',                                                          pattern:[[{h:'L',g:'r'},{h:'R',g:'l'}],[{h:'R',g:'l'},{h:'L',g:'r'}]]},
+  {id:30,tier:4,cat:'Flams',              name:'Flam Drag',                 desc:'Flam seguido de drag.',                                                                                               pattern:[[{h:'R',a:true,g:'l'},{h:'L',d:'l'},RR()],[{h:'L',a:true,g:'r'},{h:'R',d:'r'},LL()]]},
+];
+
+function renderStaff(rud){
+  const staffY=64, svgH=112, noteW=42, graceW=20, dragW=30, groupGap=22, lPad=38, rPad=38;
+  const colR='#fb7185', colL='#60a5fa';
+  const staffC='rgba(148,163,184,0.4)';
+  const beamC ='rgba(148,163,184,0.48)';
+  const barC  ='rgba(148,163,184,0.22)';
+
+  const slots=[]; let x=lPad;
+  rud.pattern.forEach((group,gi)=>{
+    group.forEach(note=>{
+      if(note.g)x+=graceW;
+      if(note.d)x+=dragW;
+      slots.push({x,note,gi});
+      x+=noteW;
+    });
+    x+=groupGap;
+  });
+  const totalW=x-groupGap+rPad+20;
+
+  let s=`<svg width="${totalW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg">`;
+
+  /* ── defs: per-colour glow filters ── */
+  s+=`<defs>
+    <filter id="gr" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="gl" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+
+  /* ── staff line ── */
+  s+=`<line x1="${lPad-14}" y1="${staffY}" x2="${totalW-rPad+14}" y2="${staffY}" stroke="${staffC}" stroke-width="1.5"/>`;
+
+  /* ── opening double bar ── */
+  s+=`<line x1="${lPad-14}" y1="${staffY-24}" x2="${lPad-14}" y2="${staffY+7}" stroke="${staffC}" stroke-width="1.5" stroke-linecap="round"/>`;
+  s+=`<line x1="${lPad-7}"  y1="${staffY-24}" x2="${lPad-7}"  y2="${staffY+7}" stroke="${staffC}" stroke-width="5"   stroke-linecap="round"/>`;
+
+  /* ── closing double bar + repeat dots ── */
+  const ex=totalW-rPad+14;
+  s+=`<line x1="${ex-7}" y1="${staffY-24}" x2="${ex-7}" y2="${staffY+7}" stroke="${staffC}" stroke-width="5"   stroke-linecap="round"/>`;
+  s+=`<line x1="${ex-1}" y1="${staffY-24}" x2="${ex-1}" y2="${staffY+7}" stroke="${staffC}" stroke-width="1.5" stroke-linecap="round"/>`;
+  s+=`<circle cx="${ex-13}" cy="${staffY-14}" r="3"   fill="${staffC}"/>`;
+  s+=`<circle cx="${ex-13}" cy="${staffY-5}"  r="3"   fill="${staffC}"/>`;
+
+  /* ── beam flags (beams above note groups) ── */
+  rud.pattern.forEach((group,gi)=>{
+    if(group.length<2)return;
+    const gs=slots.filter(sl=>sl.gi===gi);
+    const bx1=gs[0].x+6, bx2=gs[gs.length-1].x+6, by=staffY-36;
+    s+=`<rect x="${bx1}" y="${by}"   width="${bx2-bx1}" height="5" rx="2.5" fill="${beamC}"/>`;
+    if(group.length>=4)
+      s+=`<rect x="${bx1}" y="${by+9}" width="${bx2-bx1}" height="5" rx="2.5" fill="${beamC}"/>`;
+    if(group.length===3)
+      s+=`<rect x="${bx1}" y="${by+9}" width="${(bx2-bx1)*0.62}" height="5" rx="2.5" fill="${beamC}"/>`;
+    /* tuplet number: 3 for triplets, 6 for sextuplets */
+    if(group.length===3||group.length===6){
+      const mid=(bx1+bx2)/2;
+      const ty=by-10;
+      const num=group.length;
+      /* bracket: left arm, right arm */
+      const bw=Math.min((bx2-bx1)*0.28, 14);
+      s+=`<line x1="${mid-bw}" y1="${ty+5}" x2="${mid-bw}" y2="${ty-1}" stroke="${beamC}" stroke-width="1.2" stroke-linecap="round"/>`;
+      s+=`<line x1="${mid-bw}" y1="${ty-1}" x2="${mid-6}"  y2="${ty-1}" stroke="${beamC}" stroke-width="1.2" stroke-linecap="round"/>`;
+      s+=`<line x1="${mid+bw}" y1="${ty+5}" x2="${mid+bw}" y2="${ty-1}" stroke="${beamC}" stroke-width="1.2" stroke-linecap="round"/>`;
+      s+=`<line x1="${mid+bw}" y1="${ty-1}" x2="${mid+6}"  y2="${ty-1}" stroke="${beamC}" stroke-width="1.2" stroke-linecap="round"/>`;
+      s+=`<text x="${mid}" y="${ty+2}" text-anchor="middle" dominant-baseline="middle" fill="rgba(148,163,184,0.75)" font-size="11" font-weight="700" font-family="Inter,sans-serif">${num}</text>`;
+    }
+  });
+
+  /* ── group separator barlines ── */
+  rud.pattern.forEach((group,gi)=>{
+    if(gi===0)return;
+    const prev=slots.filter(sl=>sl.gi===gi-1).pop();
+    const cur =slots.find(sl=>sl.gi===gi);
+    if(!prev||!cur)return;
+    const bx=(prev.x+cur.x)/2;
+    s+=`<line x1="${bx}" y1="${staffY-22}" x2="${bx}" y2="${staffY+5}" stroke="${barC}" stroke-width="1" stroke-linecap="round"/>`;
+  });
+
+  /* ── notes ── */
+  slots.forEach(({x,note})=>{
+    const col=note.h==='R'?colR:colL;
+    const fid=note.h==='R'?'gr':'gl';
+
+    /* drag grace notes (two tiny notes before the main note) */
+    if(note.d){
+      const dc=note.d==='l'?colL:colR;
+      [-dragW+5,-dragW+16].forEach((dx,di)=>{
+        const gx=x+dx;
+        s+=`<ellipse cx="${gx}" cy="${staffY}" rx="4" ry="3" fill="${dc}" opacity="0.6" transform="rotate(-15 ${gx} ${staffY})"/>`;
+        s+=`<line x1="${gx+3}" y1="${staffY-2}" x2="${gx+3.5}" y2="${staffY-19}" stroke="${dc}" stroke-width="1.3" opacity="0.6"/>`;
+        if(di===1)s+=`<line x1="${gx-3}" y1="${staffY-17}" x2="${gx+9}" y2="${staffY-10}" stroke="${dc}" stroke-width="1.3" opacity="0.6"/>`;
+      });
+    }
+
+    /* flam grace note */
+    if(note.g){
+      const gc=note.g==='l'?colL:colR;
+      const gx=x-graceW+4;
+      s+=`<ellipse cx="${gx}" cy="${staffY}" rx="4" ry="3" fill="${gc}" opacity="0.6" transform="rotate(-15 ${gx} ${staffY})"/>`;
+      s+=`<line x1="${gx+3}" y1="${staffY-2}" x2="${gx+3.5}" y2="${staffY-19}" stroke="${gc}" stroke-width="1.3" opacity="0.6"/>`;
+      s+=`<line x1="${gx-2}" y1="${staffY-17}" x2="${gx+8}"  y2="${staffY-10}" stroke="${gc}" stroke-width="1.3" opacity="0.6"/>`;
+      /* grace slash */
+      s+=`<line x1="${gx-1}" y1="${staffY-20}" x2="${gx+8}" y2="${staffY-10}" stroke="${gc}" stroke-width="1" opacity="0.4"/>`;
+    }
+
+    /* stem */
+    s+=`<line x1="${x+6}" y1="${staffY-5}" x2="${x+6}" y2="${staffY-36}" stroke="${col}" stroke-width="2" stroke-linecap="round" opacity="0.85"/>`;
+
+    /* buzz z */
+    if(note.b)s+=`<text x="${x+11}" y="${staffY-22}" fill="${col}" font-size="13" font-style="italic" font-family="Georgia,serif" opacity="0.85">z</text>`;
+
+    /* note head — glow on accent notes */
+    if(note.a){
+      s+=`<ellipse cx="${x}" cy="${staffY}" rx="8.5" ry="6.2" filter="url(#${fid})" fill="${col}" opacity="0.25" transform="rotate(-15 ${x} ${staffY})"/>`;
+    }
+    s+=`<ellipse cx="${x}" cy="${staffY}" rx="8" ry="5.8" fill="${col}" opacity="${note.a?'1':'0.88'}" transform="rotate(-15 ${x} ${staffY})"/>`;
+
+    /* accent mark > */
+    if(note.a)s+=`<text x="${x}" y="${staffY-43}" text-anchor="middle" fill="${col}" font-size="14" font-weight="800" font-family="Inter,sans-serif">›</text>`;
+
+    /* hand label */
+    s+=`<text x="${x}" y="${staffY+23}" text-anchor="middle" fill="${col}" font-size="11.5" font-weight="700" font-family="Inter,sans-serif" opacity="0.8">${note.h}</text>`;
+  });
+
+  return s+'</svg>';
+}
+function renderSticking(rud){
+  return rud.pattern.map((group,gi)=>{
+    const part=group.map(note=>{
+      let t='';
+      if(note.d){const gc=note.d==='l'?'sL':'sR';t+=`<span class="${gc} sg">${note.d}${note.d}</span>`;}
+      if(note.g){const gc=note.g==='l'?'sL':'sR';t+=`<span class="${gc} sg">${note.g}</span>`;}
+      const cl=note.h==='R'?'sR':'sL';
+      const acc=note.a?`<span style="font-size:.65rem;vertical-align:super">›</span>`:'';
+      return t+`<span class="${cl}">${acc}${note.h}</span>`;
+    }).join(' ');
+    return (gi>0?`<span class="ssep">|</span>`:'')+part;
+  }).join('');
+}
+
+let currentRud=RUDIMENTS[0],currentCat=RUDIMENTS[0].cat,currentView='categ';
+const categories=[...new Set(RUDIMENTS.map(r=>r.cat))];
+const tierNames={1:'Tier 1 — Fundamentos',2:'Tier 2 — Construcción',3:'Tier 3 — Desarrollo',4:'Tier 4 — Maestría'};
+
+function buildCatTabs(){
+  const el=document.getElementById('catTabs');el.innerHTML='';
+  categories.forEach(cat=>{
+    const btn=document.createElement('button');
+    btn.className='cat-tab'+(cat===currentCat?' active':'');
+    btn.textContent=cat;
+    btn.onclick=()=>{currentCat=cat;buildCatTabs();buildChipsCateg();const f=RUDIMENTS.find(r=>r.cat===cat);if(f)selectRud(f);};
+    el.appendChild(btn);
+  });
+}
+function buildChipsCateg(){
+  const el=document.getElementById('rudChipsCateg');el.innerHTML='';
+  RUDIMENTS.filter(r=>r.cat===currentCat).forEach(r=>el.appendChild(makeChip(r)));
+}
+function buildTierBlocks(){
+  const el=document.getElementById('tierBlocks');el.innerHTML='';
+  [1,2,3,4].forEach(t=>{
+    const block=document.createElement('div');block.className='tier-block';
+    const title=document.createElement('div');title.className='tier-title';
+    title.innerHTML=`<span class="tier-num">${t}</span>${tierNames[t]}`;
+    const panel=document.createElement('div');panel.className='chips-panel';
+    const chips=document.createElement('div');chips.className='rud-chips';
+    RUDIMENTS.filter(r=>r.tier===t).forEach(r=>chips.appendChild(makeChip(r)));
+    panel.appendChild(chips);
+    block.appendChild(title);block.appendChild(panel);el.appendChild(block);
+  });
+}
+function makeChip(rud){
+  const btn=document.createElement('button');
+  const lvl=rudProgress[rud.id];
+  btn.className='rud-chip'+(rud===currentRud?' active':'');
+  btn.innerHTML=`<span class="chip-lvl" style="background:${levelColor(lvl)}"></span>${rud.name}`;
+  btn.onclick=()=>selectRud(rud);
+  return btn;
+}
+function setView(v){
+  currentView=v;
+  document.getElementById('vtCateg').classList.toggle('active',v==='categ');
+  document.getElementById('vtTier').classList.toggle('active',v==='tier');
+  document.getElementById('vtFavs').classList.toggle('active',v==='favs');
+  document.getElementById('categPanel').style.display=v==='categ'?'':'none';
+  document.getElementById('tierPanel').style.display=v==='tier'?'':'none';
+  document.getElementById('favsPanel').style.display=v==='favs'?'':'none';
+  document.querySelector('.app').classList.toggle('view-favs',v==='favs');
+  if(v==='tier')buildTierBlocks();
+  else if(v==='favs'){buildFavsPanel();updateFavArrows();}
+  else{buildCatTabs();buildChipsCateg();}
+}
+function selectRud(rud, dir){
+  const card=document.querySelector('.main-card');
+  if(dir && card){
+    const outCls = dir>0 ? 'rud-out'   : 'rud-out-r';
+    const inCls  = dir>0 ? 'rud-in'    : 'rud-in-r';
+    card.classList.remove('rud-in','rud-in-r','rud-out','rud-out-r');
+    card.classList.add(outCls);
+    setTimeout(()=>{
+      card.classList.remove(outCls);
+      _applyRud(rud);
+      void card.offsetWidth;
+      card.classList.add(inCls);
+    },190);
+    return;
+  }
+  _applyRud(rud);
+}
+function _applyRud(rud){
+  currentRud=rud;currentCat=rud.cat;
+  document.getElementById('rudCatLabel').textContent=rud.cat;
+  document.getElementById('rudName').textContent=rud.name;
+  document.getElementById('rudTierBadge').textContent=`Tier ${rud.tier}`;
+  const d=document.getElementById('rudDesc');d.textContent=rud.desc||'';d.style.display=rud.desc?'block':'none';
+  buildLevelStrip(rud);
+  buildAudioPlayer(rud);
+  updateFavBtn();
+  document.getElementById('staffWrap').innerHTML=renderStaff(rud);
+  document.getElementById('sticking').innerHTML=renderSticking(rud);
+  if(currentView==='categ'){buildCatTabs();buildChipsCateg();}
+  else if(currentView==='tier')buildTierBlocks();
+  else{buildFavsPanel();updateFavArrows();}
+}
+function buildLevelStrip(rud){
+  const el=document.getElementById('levelStrip');
+  el.innerHTML='<span class="ls-label">Nivel:</span>';
+  const ci=levelIndex(rudProgress[rud.id]);
+  LEVELS.forEach((lvl,i)=>{
+    if(i>0){const sep=document.createElement('div');sep.className='lvl-sep';el.appendChild(sep);}
+    const btn=document.createElement('button');
+    btn.className=`lvl-btn ${lvl.cls}`+(i<=ci?' reached':'');
+    btn.innerHTML=(i<=ci?'<span class="check">✓</span>':'')+`${lvl.name} <span class="bpm-hint">${lvl.bpm}bpm</span>`;
+    btn.title=`Marcar ${lvl.name} (${lvl.bpm} BPM)`;
+    btn.onclick=()=>{
+      rudProgress[rud.id]=rudProgress[rud.id]===lvl.key?null:lvl.key;
+      if(!rudProgress[rud.id])delete rudProgress[rud.id];
+      saveProgress();buildLevelStrip(rud);refreshChips();updateProgBanner();
+    };
+    el.appendChild(btn);
+  });
+}
+function refreshChips(){
+  if(currentView==='categ')buildChipsCateg();
+  else if(currentView==='tier')buildTierBlocks();
+  else buildFavsPanel();
+}
+function updateProgBanner(){
+  const cum={bronze:0,silver:0,gold:0,platinum:0,diamond:0};
+  RUDIMENTS.forEach(r=>{
+    const li=levelIndex(rudProgress[r.id]);
+    LEVELS.forEach((l,i)=>{if(li>=i)cum[l.key]++;});
+  });
+  document.getElementById('cBronze').textContent=cum.bronze;
+  document.getElementById('cSilver').textContent=cum.silver;
+  document.getElementById('cGold').textContent=cum.gold;
+  document.getElementById('cPlat').textContent=cum.platinum;
+  document.getElementById('cDiamond').textContent=cum.diamond;
+  const total=40;
+  document.getElementById('pbBronze').style.width=(cum.bronze/total*100)+'%';
+  document.getElementById('pbSilver').style.width=(cum.silver/total*100)+'%';
+  document.getElementById('pbGold').style.width=(cum.gold/total*100)+'%';
+  document.getElementById('pbPlat').style.width=(cum.platinum/total*100)+'%';
+  document.getElementById('pbDiamond').style.width=(cum.diamond/total*100)+'%';
+}
+/* ---- Vic Firth audio play-along ---- */
+const VF_BASE='https://ae.vicfirth.com/wp-content/uploads/';
+const VF_STEMS={
+  1:'01_Single-Stroke-Roll-',   2:'02_Single-Stroke-4_',    3:'03_Single-Stroke-7_',
+  /* 15: Multiple Bounce Roll — no audio */
+  14:'05_Triple-Stroke-Roll_',  4:'06_Double-Stroke-Roll_',  5:'07_Five-Stroke-Roll_',
+  6:'08_Six-Stroke-Roll_',      7:'09_Seven-Stroke-Roll-',   9:'10_Nine-Stroke-Roll_',
+  10:'11_Ten-Stroke-Roll_',     8:'12_Eleven-Stroke-Roll_',  11:'13_Thirteen-Stroke-Roll_',
+  12:'14_Fifteen-Stroke-Roll_', 13:'15_Seventeen-Stroke-Roll_', 16:'16_Single-Paradiddle_',
+  17:'17_Double-Paradiddle_',   18:'18_Triple-Paradiddle_',  19:'19_Paradiddle-diddle_',
+  20:'20_Flam_',                21:'21_Flam-Accent_',        22:'22_Flam-Tap_',
+  23:'23_Flamacue_',            24:'24_Flam-Paradiddle_',    25:'25_Flammed-Mill_',
+  26:'26_Flam-Paradiddle-diddle_', 27:'27_Patafla-fla_',    28:'28_Swiss-Army-Triplet_',
+  29:'29_Inverted-Flam-Tap_',   30:'30_Flam-Drag_',          32:'32_Single-Drag-Tap_',
+  33:'33_Double-Drag-Tap_',     34:'34_Lesson-25_',          35:'35_Single-Dragadiddle_',
+  36:'36_Drag-Paradiddle-1_',   37:'37_Drag-Paradiddle-2_',  38:'38_Single-Ratamacue_',
+  39:'39_Double-Ratamacue_',    40:'40_Triple-Ratamacue_',
+};
+const AP_TRACKS=[
+  {key:'open-close-open',label:'O-C-O'},
+  {key:'bronze',  label:'Bronce'},
+  {key:'silver',  label:'Plata'},
+  {key:'gold',    label:'Oro'},
+  {key:'platinum',label:'Platino'},
+  {key:'diamond', label:'Diamante'},
+];
+let apAudio=null, apCurrentKey='open-close-open', apStem=null, apFavsAutoPlay=false, apFavsStartKey='bronze';
+function getFavsSorted(){
+  return RUDIMENTS.filter(r=>rudFavs.has(r.id)).sort((a,b)=>a.tier-b.tier||a.id-b.id);
+}
+function buildAudioPlayer(rud){
+  const el=document.getElementById('audioPlayer');
+  const stem=VF_STEMS[rud.id]||null;
+  apStem=stem;
+  if(apAudio){apAudio.pause();apAudio.src='';}
+  if(!stem){
+    el.style.display='';
+    el.innerHTML='<div class="ap-header"><span class="ap-header-dot"></span>Play-along</div><div class="ap-unavail">Audio no disponible para este rudimento.</div>';
+    return;
+  }
+  apCurrentKey=apFavsAutoPlay?apFavsStartKey:'open-close-open';
+  el.style.display='';
+  const btns=AP_TRACKS.map(t=>`<button class="ap-track${t.key===apCurrentKey?' active':''}" data-key="${t.key}">${t.label}</button>`).join('');
+  el.innerHTML=`
+    <div class="ap-header"><span class="ap-header-dot"></span>Play-along &middot; Vic Firth</div>
+    <div class="ap-tracks">${btns}</div>
+    <div class="ap-controls">
+      <button class="ap-play" id="apPlay">&#9654;</button>
+      <div class="ap-progress-wrap" id="apProgressWrap"><div class="ap-progress-fill" id="apProgressFill"></div></div>
+      <span class="ap-time" id="apTime">-:--</span>
+    </div>`;
+  apAudio=new Audio();
+  apAudio.preload='none';
+  apAudio.src=VF_BASE+apStem+apCurrentKey+'.mp3';
+  el.querySelectorAll('.ap-track').forEach(btn=>{
+    btn.onclick=()=>apSelectTrack(btn.dataset.key);
+  });
+  document.getElementById('apPlay').onclick=apToggle;
+  document.getElementById('apProgressWrap').onclick=e=>{
+    if(!apAudio||!apAudio.duration)return;
+    const r=e.currentTarget.getBoundingClientRect();
+    apAudio.currentTime=((e.clientX-r.left)/r.width)*apAudio.duration;
+  };
+  apAudio.addEventListener('timeupdate',apUpdateProgress);
+  apAudio.addEventListener('ended',()=>{
+    const idx=AP_TRACKS.findIndex(t=>t.key===apCurrentKey);
+    if(idx>=0 && idx<AP_TRACKS.length-1){
+      apSelectTrack(AP_TRACKS[idx+1].key);
+      apAudio.play().catch(()=>{});
+    } else if(currentView==='favs'){
+      const sorted=getFavsSorted().filter(r=>VF_STEMS[r.id]);
+      const ci=sorted.findIndex(r=>r.id===currentRud.id);
+      if(ci>=0 && ci<sorted.length-1){
+        apFavsAutoPlay=true;
+        selectRud(sorted[ci+1], 1);
+      } else {
+        apSetPlay(false);
+      }
+    } else {
+      apSetPlay(false);
+    }
+  });
+  apAudio.addEventListener('play', ()=>apSetPlay(true));
+  apAudio.addEventListener('pause',()=>apSetPlay(false));
+  if(apFavsAutoPlay){apFavsAutoPlay=false;setTimeout(()=>apAudio.play().catch(()=>{}),80);}
+}
+function apSelectTrack(key){
+  const wasPlaying=apAudio&&!apAudio.paused;
+  if(apAudio)apAudio.pause();
+  apCurrentKey=key;
+  apAudio.src=VF_BASE+apStem+key+'.mp3';
+  document.querySelectorAll('#audioPlayer .ap-track').forEach(b=>b.classList.toggle('active',b.dataset.key===key));
+  apSetPlay(false);
+  apResetBar();
+  if(wasPlaying)apAudio.play().catch(()=>{});
+}
+function apToggle(){
+  if(!apAudio)return;
+  if(apAudio.paused)apAudio.play().catch(()=>{});else apAudio.pause();
+}
+function apSetPlay(on){
+  const btn=document.getElementById('apPlay');
+  if(!btn)return;
+  btn.innerHTML=on?'&#9646;&#9646;':'&#9654;';
+  btn.classList.toggle('playing',on);
+}
+function apResetBar(){
+  const f=document.getElementById('apProgressFill'),t=document.getElementById('apTime');
+  if(f)f.style.width='0%';
+  if(t)t.textContent='-:--';
+}
+function apUpdateProgress(){
+  if(!apAudio)return;
+  const f=document.getElementById('apProgressFill'),t=document.getElementById('apTime');
+  if(!f||!t)return;
+  f.style.width=(apAudio.duration?(apAudio.currentTime/apAudio.duration)*100:0)+'%';
+  const rem=apAudio.duration?apAudio.duration-apAudio.currentTime:0;
+  t.textContent=`${Math.floor(rem/60)}:${String(Math.floor(rem%60)).padStart(2,'0')}`;
+}
+
+buildCatTabs();buildChipsCateg();selectRud(RUDIMENTS[0]);updateProgBanner();
+buildFavStartRow();
+document.getElementById('favBtn').onclick=toggleFav;
+</script>
+
+  <script>
+    (function () {
+      /* Fade-in on load */
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          document.body.classList.add('page-loaded');
+        });
+      });
+
+      document.querySelectorAll('a[href]').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          var href = this.getAttribute('href');
+          if (!href || href.startsWith('#') || this.target) return;
+          try { if (new URL(href, location.href).origin !== location.origin) return; } catch (_) { return; }
+          e.preventDefault();
+          document.body.classList.add('page-exit');
+          setTimeout(function () { location.href = href; }, 340);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

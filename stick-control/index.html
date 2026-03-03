@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stick Control — Práctica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #080f1a;
+      --card:    #0f1e30;
+      --card2:   #132337;
+      --surface: #172840;
+      --accent:  #38bdf8;
+      --accent2: #0ea5e9;
+      --R:       #f87171;
+      --L:       #60a5fa;
+      --text:    #e1eaf4;
+      --muted:   #6080a0;
+      --border:  rgba(148,163,184,0.12);
+      --border2: rgba(148,163,184,0.22);
+      --active-beat-bg: rgba(56,189,248,0.18);
+      --active-beat-border: rgba(56,189,248,0.7);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse 90% 40% at 50% -5%, rgba(14,165,233,0.11) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 30% at 90% 90%, rgba(56,189,248,0.04) 0%, transparent 55%);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* ── Nav ── */
+    nav {
+      display: flex; align-items: center; gap: 0.55rem;
+      padding: 0.85rem 1.75rem;
+      background: rgba(8,15,26,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 20;
+    }
+    nav a { color: var(--muted); text-decoration: none; font-size: 0.78rem; display: flex; align-items: center; gap: 0.3rem; transition: color 0.15s; }
+    nav a:hover { color: var(--text); }
+    nav .sep   { color: rgba(148,163,184,0.2); font-size: 0.7rem; }
+    nav .title { color: var(--text); font-weight: 600; font-size: 0.86rem; letter-spacing: -0.015em; }
+    /* ── Layout ── */
+    .app { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+    /* ── Page title ── */
+    .page-title {
+      margin-bottom: 0.3rem;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .page-subtitle {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    /* ── Section tabs ── */
+    .section-tabs {
+      display: flex;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 0.65rem;
+      padding: 3px;
+      margin-bottom: 1.25rem;
+      gap: 2px;
+      width: fit-content;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .section-tabs::-webkit-scrollbar { display: none; }
+    .section-tab {
+      padding: 0.35rem 1rem;
+      border-radius: 0.45rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+    .section-tab.active {
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    }
+    .section-tab:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.04); }
+    /* ── Pattern chips ── */
+    .pattern-chips { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .pattern-chip {
+      padding: 0.28rem 0.65rem;
+      border-radius: 0.45rem;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.73rem;
+      font-weight: 400;
+      cursor: pointer;
+      transition: all 0.14s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .pattern-chip.active {
+      background: rgba(56,189,248,0.12);
+      color: var(--accent);
+      border-color: rgba(56,189,248,0.35);
+      font-weight: 600;
+    }
+    .pattern-chip:hover:not(.active) { color: var(--text); border-color: var(--border2); background: var(--card2); }
+    .chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; opacity: 0.6; }
+    .chip-done { color: #4ade80; opacity: 0.8; font-size: 0.6rem; }
+    /* ── Main practice card ── */
+    .practice-card {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: 1.1rem;
+      overflow: hidden;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.04) inset;
+    }
+    .card-inner { padding: 1.75rem 1.75rem 1.5rem; }
+    /* ── Pattern header ── */
+    .pattern-header { margin-bottom: 1.4rem; }
+    .pattern-ex {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+      opacity: 0.85;
+    }
+    .pattern-name-row { display: flex; align-items: center; gap: 0.8rem; }
+    .pattern-name { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+    .done-btn {
+      margin-left: auto;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--muted);
+      transition: color 0.14s, transform 0.14s;
+      flex-shrink: 0;
+      padding: 0.1rem 0.2rem;
+    }
+    .done-btn:hover { color: var(--text); transform: scale(1.2); }
+    .done-btn.active { color: #4ade80; }
+    /* ── Sticking beat display ── */
+    .beat-display {
+      display: flex;
+      gap: 0.45rem;
+      margin-bottom: 1.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .beat-cell {
+      width: 52px; height: 60px;
+      border-radius: 0.65rem;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      transition: background 0.08s, border-color 0.08s, transform 0.08s;
+      user-select: none;
+    }
+    .beat-cell .beat-num {
+      font-size: 0.55rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+    .beat-cell.R { color: var(--R); }
+    .beat-cell.L { color: var(--L); }
+    .beat-cell.active {
+      background: var(--active-beat-bg);
+      border-color: var(--active-beat-border);
+      transform: scale(1.08);
+    }
+    .beat-cell.active.R { border-color: rgba(248,113,113,0.6); background: rgba(248,113,113,0.14); }
+    .beat-cell.active.L { border-color: rgba(96,165,250,0.6); background: rgba(96,165,250,0.14); }
+    .beat-cell.just-played { opacity: 0.65; }
+    /* ── Group separator ── */
+    .beat-sep {
+      width: 1px;
+      height: 60px;
+      background: var(--border);
+      align-self: center;
+      flex-shrink: 0;
+    }
+    /* ── Controls ── */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+    /* BPM row */
+    .bpm-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .bpm-display {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      min-width: 3.2rem;
+      line-height: 1;
+      color: var(--text);
+    }
+    .bpm-unit { font-size: 0.7rem; color: var(--muted); font-weight: 500; margin-left: 0.1rem; display: block; margin-top: 0.15rem; }
+    .bpm-slider-wrap { flex: 1; display: flex; flex-direction: column; gap: 0.45rem; }
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.07);
+      cursor: pointer;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(56,189,248,0.4);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+    input[type=range]::-moz-range-thumb {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+    }
+    .tempo-presets { display: flex; gap: 0.3rem; }
+    .tempo-btn {
+      padding: 0.22rem 0.6rem;
+      border-radius: 2rem;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.68rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.13s;
+      white-space: nowrap;
+    }
+    .tempo-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .tempo-btn.active { color: var(--accent); border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.09); font-weight: 600; }
+    /* Play row */
+    .play-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .play-btn {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: var(--accent);
+      color: #061422;
+      font-size: 1.15rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 0 20px rgba(56,189,248,0.3);
+    }
+    .play-btn:hover { background: #7dd3fc; transform: scale(1.06); }
+    .play-btn.playing { background: var(--R); color: #fff; box-shadow: 0 0 20px rgba(248,113,113,0.35); }
+    .play-btn.playing:hover { background: #fca5a5; }
+    .metronome-info { display: flex; flex-direction: column; gap: 0.2rem; }
+    .loop-counter { font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .loop-count { color: var(--accent); font-weight: 600; }
+    .beat-counter { font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    /* Accent toggle */
+    .options-row {
+      display: flex;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .option-label { font-size: 0.68rem; color: var(--muted); font-weight: 500; }
+    .toggle-btn {
+      padding: 0.22rem 0.65rem;
+      border-radius: 2rem;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.7rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.13s;
+    }
+    .toggle-btn.on { color: var(--accent); border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.09); font-weight: 600; }
+    .toggle-btn:hover { color: var(--text); }
+    /* ── Card nav arrows ── */
+    .card-nav {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .card-nav .practice-card { flex: 1; min-width: 0; }
+    .nav-arrow {
+      flex-shrink: 0;
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--border2);
+      background: var(--card);
+      color: var(--muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .nav-arrow:hover:not(:disabled) { color: var(--text); border-color: rgba(56,189,248,0.4); background: var(--card2); }
+    .nav-arrow:disabled { opacity: 0.15; cursor: default; }
+    /* ── Animations ── */
+    @keyframes card-in  { from { opacity:0; transform:translateX(28px) scale(0.985); } to { opacity:1; transform:translateX(0) scale(1); } }
+    @keyframes card-in-r{ from { opacity:0; transform:translateX(-28px) scale(0.985); } to { opacity:1; transform:translateX(0) scale(1); } }
+    .practice-card.anim-in   { animation: card-in   0.26s cubic-bezier(0,0,0.2,1) forwards; }
+    .practice-card.anim-in-r { animation: card-in-r 0.26s cubic-bezier(0,0,0.2,1) forwards; }
+    /* ── Legend ── */
+    .legend {
+      display: flex; gap: 1.1rem; font-size: 0.68rem; color: var(--muted);
+      flex-wrap: wrap; padding: 1rem 1.75rem;
+      border-top: 1px solid var(--border);
+      opacity: 0.7;
+    }
+    .legend span { display: flex; align-items: center; gap: 0.28rem; }
+    .ldot { width: 8px; height: 8px; border-radius: 50%; }
+    /* ── Progress summary ── */
+    .progress-bar-row {
+      display: flex; gap: 3px; height: 4px; border-radius: 3px; overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 3px;
+      transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 0 0 8px rgba(56,189,248,0.3);
+    }
+    .progress-track { flex: 1; background: rgba(255,255,255,0.06); border-radius: 3px; }
+    .progress-label { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.5rem; }
+    .done-count { color: var(--accent); font-weight: 600; }
+    /* ── Keyboard hint ── */
+    .kbd-hint { font-size: 0.65rem; color: var(--muted); opacity: 0.6; margin-top: 0.3rem; }
+    kbd { display: inline-block; padding: 0.05rem 0.3rem; border: 1px solid var(--border2); border-radius: 0.25rem; font-size: 0.62rem; font-family: inherit; }
+
+    /* ── Page transitions ── */
+    @keyframes pageEnter {
+      from { opacity: 0; transform: scale(0.97) translateY(8px); filter: blur(3px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
+    }
+    @keyframes pageExit {
+      from { opacity: 1; transform: scale(1);    filter: blur(0);   }
+      to   { opacity: 0; transform: scale(0.98); filter: blur(3px); }
+    }
+    /* Start invisible; JS adds .page-loaded after first paint to trigger enter */
+    body {
+      opacity: 0;
+    }
+    body.page-loaded {
+      animation: pageEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    body.page-exit {
+      animation: pageExit 0.32s ease-out both;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Inicio
+  </a>
+  <span class="sep">/</span>
+  <span class="title">Stick Control</span>
+</nav>
+
+<div class="app">
+  <h1 class="page-title">Stick Control</h1>
+  <p class="page-subtitle">G. L. Stone — Páginas 1, 2 y 3 · 72 ejercicios · Verifica los patrones con tu libro</p>
+
+  <p class="progress-label"><span class="done-count" id="doneCount">0</span> / <span id="totalCount">0</span> ejercicios practicados</p>
+  <div class="progress-bar-row">
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="section-tabs" id="sectionTabs"></div>
+  <div class="pattern-chips" id="patternChips"></div>
+
+  <div class="card-nav">
+    <button class="nav-arrow" id="navPrev" onclick="navigate(-1)" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="practice-card" id="practiceCard">
+      <div class="card-inner">
+        <div class="pattern-header">
+          <div class="pattern-ex" id="patternEx"></div>
+          <div class="pattern-name-row">
+            <div class="pattern-name" id="patternName"></div>
+            <button class="done-btn" id="doneBtn" title="Marcar como practicado" onclick="toggleDone()">✓</button>
+          </div>
+        </div>
+        <div class="beat-display" id="beatDisplay"></div>
+        <div class="controls">
+          <div class="bpm-row">
+            <div>
+              <div class="bpm-display" id="bpmDisplay">80</div>
+              <span class="bpm-unit">BPM</span>
+            </div>
+            <div class="bpm-slider-wrap">
+              <input type="range" id="bpmSlider" min="30" max="220" value="80" oninput="setBpm(+this.value)">
+              <div class="tempo-presets" id="tempoPresets"></div>
+            </div>
+          </div>
+          <div class="play-row">
+            <button class="play-btn" id="playBtn" onclick="togglePlay()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <div class="metronome-info">
+              <div class="loop-counter">Vuelta: <span class="loop-count" id="loopCount">0</span></div>
+              <div class="beat-counter" id="beatCounterLabel">Pulso: — / 8</div>
+            </div>
+            <div style="margin-left:auto; display:flex; flex-direction:column; gap:0.4rem; align-items:flex-end;">
+              <div class="options-row">
+                <span class="option-label">Click:</span>
+                <button class="toggle-btn on" id="toggleAccent" onclick="toggleOption('accent')">Acento en 1</button>
+                <button class="toggle-btn on" id="toggleSound" onclick="toggleOption('sound')">Sonido</button>
+              </div>
+              <p class="kbd-hint"><kbd>Space</kbd> play/stop &nbsp; <kbd>←</kbd><kbd>→</kbd> cambiar ejercicio</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><span class="ldot" style="background:var(--R)"></span> Mano derecha (D)</span>
+        <span><span class="ldot" style="background:var(--L)"></span> Mano izquierda (I)</span>
+        <span>| separador de grupo</span>
+      </div>
+    </div>
+    <button class="nav-arrow" id="navNext" onclick="navigate(1)" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+/* ────────────────────────────────────────────────────────────
+   DATA — Stick Control, G. L. Stone — Páginas 1-3 (ejercicios 1-72)
+   8 golpes por ejercicio. D=Derecha, I=Izquierda. | = separador de grupo visual.
+   Cada par impar/par es espejo D↔I (ej: 1 y 2, 3 y 4, etc.)
+   ──────────────────────────────────────────────────────────── */
+const SECTIONS = [
+  {
+    id: 'P1',
+    name: 'Página 1',
+    patterns: [
+      { ex:  1, beats: 'DIDI|DIDI' },
+      { ex:  2, beats: 'IDID|IDID' },
+      { ex:  3, beats: 'DDII|DDII' },
+      { ex:  4, beats: 'IIDD|IIDD' },
+      { ex:  5, beats: 'DIDI|DDII' },
+      { ex:  6, beats: 'IDID|IIDD' },
+      { ex:  7, beats: 'DDII|DIDI' },
+      { ex:  8, beats: 'IIDD|IDID' },
+      { ex:  9, beats: 'DIID|DIID' },
+      { ex: 10, beats: 'IDDI|IDDI' },
+      { ex: 11, beats: 'DIDD|DDII' },
+      { ex: 12, beats: 'IDII|IIDD' },
+      { ex: 13, beats: 'DIDD|DIDD' },
+      { ex: 14, beats: 'IDII|IDII' },
+      { ex: 15, beats: 'DIDI|DIDD' },
+      { ex: 16, beats: 'IDID|IDII' },
+      { ex: 17, beats: 'DIDD|DIDI' },
+      { ex: 18, beats: 'IDII|IDID' },
+      { ex: 19, beats: 'DDID|DDID' },
+      { ex: 20, beats: 'IIDI|IIDI' },
+      { ex: 21, beats: 'DIDI|DDID' },
+      { ex: 22, beats: 'IDID|IIDI' },
+      { ex: 23, beats: 'DDID|DIDI' },
+      { ex: 24, beats: 'IIDI|IDID' },
+    ]
+  },
+  {
+    id: 'P2',
+    name: 'Página 2',
+    patterns: [
+      { ex: 25, beats: 'DIID|DIDI' },
+      { ex: 26, beats: 'IDDI|IDID' },
+      { ex: 27, beats: 'DIDI|DIID' },
+      { ex: 28, beats: 'IDID|IDDI' },
+      { ex: 29, beats: 'DDII|DIID' },
+      { ex: 30, beats: 'IIDD|IDDI' },
+      { ex: 31, beats: 'DIID|DDII' },
+      { ex: 32, beats: 'IDDI|IIDD' },
+      { ex: 33, beats: 'DIDD|DIID' },
+      { ex: 34, beats: 'IDII|IDDI' },
+      { ex: 35, beats: 'DIID|DIDD' },
+      { ex: 36, beats: 'IDDI|IDII' },
+      { ex: 37, beats: 'DDID|DIID' },
+      { ex: 38, beats: 'IIDI|IDDI' },
+      { ex: 39, beats: 'DIID|DDID' },
+      { ex: 40, beats: 'IDDI|IIDI' },
+      { ex: 41, beats: 'DIDI|DIDD' },
+      { ex: 42, beats: 'IDID|IDII' },
+      { ex: 43, beats: 'DIDD|DIDI' },
+      { ex: 44, beats: 'IDII|IDID' },
+      { ex: 45, beats: 'DDII|DIDD' },
+      { ex: 46, beats: 'IIDD|IDII' },
+      { ex: 47, beats: 'DIDD|DDII' },
+      { ex: 48, beats: 'IDII|IIDD' },
+    ]
+  },
+  {
+    id: 'P3',
+    name: 'Página 3',
+    patterns: [
+      { ex: 49, beats: 'DDID|DIDI' },
+      { ex: 50, beats: 'IIDI|IDID' },
+      { ex: 51, beats: 'DIDI|DDID' },
+      { ex: 52, beats: 'IDID|IIDI' },
+      { ex: 53, beats: 'DIDD|DDID' },
+      { ex: 54, beats: 'IDII|IIDI' },
+      { ex: 55, beats: 'DDID|DIDD' },
+      { ex: 56, beats: 'IIDI|IDII' },
+      { ex: 57, beats: 'DIID|DDID' },
+      { ex: 58, beats: 'IDDI|IIDI' },
+      { ex: 59, beats: 'DDID|DIID' },
+      { ex: 60, beats: 'IIDI|IDDI' },
+      { ex: 61, beats: 'DDII|DDID' },
+      { ex: 62, beats: 'IIDD|IIDI' },
+      { ex: 63, beats: 'DDID|DDII' },
+      { ex: 64, beats: 'IIDI|IIDD' },
+      { ex: 65, beats: 'DDII|DIDD' },
+      { ex: 66, beats: 'IIDD|IDII' },
+      { ex: 67, beats: 'DIDD|DDID' },
+      { ex: 68, beats: 'IDII|IIDI' },
+      { ex: 69, beats: 'DDID|DIDD' },
+      { ex: 70, beats: 'IIDI|IDII' },
+      { ex: 71, beats: 'DIID|DIDD' },
+      { ex: 72, beats: 'IDDI|IDII' },
+    ]
+  },
+];
+
+/* Flatten all patterns with section info */
+const ALL = [];
+SECTIONS.forEach(sec => sec.patterns.forEach(p => ALL.push({ ...p, secId: sec.id, secName: sec.name })));
+const TOTAL = ALL.length;
+
+/* ── State ── */
+let currentIdx = 0;
+let currentSection = 'all';
+let filteredIdxs = ALL.map((_,i)=>i); // indices into ALL[]
+let done = new Set(JSON.parse(localStorage.getItem('scDone')||'[]'));
+let bpm = 80;
+let isPlaying = false;
+let loopCount = 0;
+let currentBeat = 0;
+let opts = { accent: true, sound: true };
+
+/* ── Web Audio Metronome ── */
+let audioCtx = null;
+let schedulerTimer = null;
+let nextNoteTime = 0.0;
+let scheduledBeat = 0;
+const LOOKAHEAD   = 25.0;  // ms
+const SCHEDULE_AHEAD = 0.1; // s
+
+function initAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+
+function scheduleClick(beat, time){
+  if(!opts.sound) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  const isAccent = opts.accent && beat === 0;
+  osc.frequency.value = isAccent ? 1100 : 820;
+  gain.gain.setValueAtTime(isAccent ? 0.35 : 0.22, time);
+  gain.gain.exponentialRampToValueAtTime(0.001, time + 0.055);
+  osc.start(time); osc.stop(time + 0.06);
+}
+
+function scheduler(){
+  const pat = currentPattern();
+  const len = pat.length;
+  while(nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD){
+    const beat = scheduledBeat;
+    const t    = nextNoteTime;
+    scheduleClick(beat, t);
+    const delay = Math.max(0, (t - audioCtx.currentTime) * 1000 - 8);
+    setTimeout(()=>{ advanceBeatUI(beat, len); }, delay);
+    nextNoteTime += 60.0 / bpm;
+    scheduledBeat = (scheduledBeat + 1) % len;
+    if(scheduledBeat === 0) loopCount++;
+  }
+  schedulerTimer = setTimeout(scheduler, LOOKAHEAD);
+}
+
+function startPlay(){
+  initAudio();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  isPlaying = true;
+  currentBeat = 0;
+  scheduledBeat = 0;
+  loopCount = 0;
+  nextNoteTime = audioCtx.currentTime + 0.05;
+  scheduler();
+  document.getElementById('playBtn').classList.add('playing');
+  document.getElementById('playBtn').innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+}
+
+function stopPlay(){
+  isPlaying = false;
+  clearTimeout(schedulerTimer);
+  clearAllBeats();
+  document.getElementById('playBtn').classList.remove('playing');
+  document.getElementById('playBtn').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  document.getElementById('loopCount').textContent = '0';
+  document.getElementById('beatCounterLabel').textContent = 'Pulso: — / ' + currentPattern().length;
+}
+
+function togglePlay(){
+  if(isPlaying) stopPlay(); else startPlay();
+}
+
+/* ── Beat UI ── */
+function advanceBeatUI(beat, totalBeats){
+  currentBeat = beat;
+  const cells = document.querySelectorAll('.beat-cell');
+  cells.forEach((c,i)=>{
+    c.classList.remove('active','just-played');
+    if(i === beat) c.classList.add('active');
+    else if(i === (beat-1+totalBeats)%totalBeats) c.classList.add('just-played');
+  });
+  document.getElementById('loopCount').textContent = loopCount;
+  document.getElementById('beatCounterLabel').textContent = `Pulso: ${beat+1} / ${totalBeats}`;
+}
+
+function clearAllBeats(){
+  document.querySelectorAll('.beat-cell').forEach(c=>c.classList.remove('active','just-played'));
+  document.getElementById('beatCounterLabel').textContent = 'Pulso: — / ' + currentPattern().length;
+}
+
+/* ── Pattern data helpers ── */
+function currentPattern(){
+  const p = ALL[currentIdx];
+  // Parse 'beats' string — strip | separators, return array of 'D'/'I'
+  return p.beats.replace(/\|/g,'').split('');
+}
+
+function groupsOf(p){
+  if(p.beats.includes('|')) return p.beats.split('|').map(g=>g.split(''));
+  const b = p.beats.split('');
+  return [b.slice(0,4), b.slice(4)];
+}
+
+/* ── BPM ── */
+function setBpm(v){
+  bpm = Math.max(30, Math.min(220, v));
+  document.getElementById('bpmDisplay').textContent = bpm;
+  document.getElementById('bpmSlider').value = bpm;
+  updateTempoPresets();
+}
+
+const TEMPO_PRESETS = [
+  { label:'Lento',   bpm: 60  },
+  { label:'Medio',   bpm: 90  },
+  { label:'Rápido',  bpm: 120 },
+  { label:'Desafío', bpm: 160 },
+];
+
+function buildTempoPresets(){
+  const wrap = document.getElementById('tempoPresets');
+  wrap.innerHTML = '';
+  TEMPO_PRESETS.forEach(t=>{
+    const b = document.createElement('button');
+    b.className = 'tempo-btn';
+    b.dataset.bpm = t.bpm;
+    b.textContent = t.label;
+    b.onclick = ()=>{ setBpm(t.bpm); if(isPlaying){ stopPlay(); startPlay(); } };
+    wrap.appendChild(b);
+  });
+  updateTempoPresets();
+}
+
+function updateTempoPresets(){
+  document.querySelectorAll('.tempo-btn').forEach(b=>{
+    b.classList.toggle('active', +b.dataset.bpm === bpm);
+  });
+}
+
+/* ── Options ── */
+function toggleOption(key){
+  opts[key] = !opts[key];
+  document.getElementById('toggle'+key.charAt(0).toUpperCase()+key.slice(1)).classList.toggle('on', opts[key]);
+}
+
+/* ── Section tabs ── */
+function buildSectionTabs(){
+  const wrap = document.getElementById('sectionTabs');
+  wrap.innerHTML = '';
+  const all = document.createElement('button');
+  all.className = 'section-tab' + (currentSection==='all'?' active':'');
+  all.textContent = 'Todos';
+  all.onclick = ()=>setSection('all');
+  wrap.appendChild(all);
+  SECTIONS.forEach(s=>{
+    const b = document.createElement('button');
+    b.className = 'section-tab' + (currentSection===s.id?' active':'');
+    b.textContent = s.name;
+    b.onclick = ()=>setSection(s.id);
+    wrap.appendChild(b);
+  });
+}
+
+function setSection(id){
+  currentSection = id;
+  if(id==='all') filteredIdxs = ALL.map((_,i)=>i);
+  else filteredIdxs = ALL.reduce((acc,p,i)=>{ if(p.secId===id) acc.push(i); return acc; },[]);
+  currentIdx = filteredIdxs[0]||0;
+  buildSectionTabs();
+  buildChips();
+  renderCard();
+  updateNavArrows();
+}
+
+/* ── Chips ── */
+function buildChips(){
+  const wrap = document.getElementById('patternChips');
+  wrap.innerHTML = '';
+  filteredIdxs.forEach((allIdx, fi)=>{
+    const p = ALL[allIdx];
+    const chip = document.createElement('button');
+    chip.className = 'pattern-chip' + (allIdx===currentIdx?' active':'');
+    chip.innerHTML = `<span class="chip-dot"></span>Ej. ${p.ex}${done.has(allIdx)?'<span class="chip-done">✓</span>':''}`;
+    chip.onclick = ()=>{ selectPattern(allIdx, allIdx>currentIdx?1:-1); };
+    wrap.appendChild(chip);
+  });
+}
+
+function refreshChips(){
+  const chips = document.querySelectorAll('.pattern-chip');
+  filteredIdxs.forEach((allIdx,fi)=>{
+    const chip = chips[fi];
+    if(!chip) return;
+    chip.className = 'pattern-chip' + (allIdx===currentIdx?' active':'');
+    chip.innerHTML = `<span class="chip-dot"></span>Ej. ${ALL[allIdx].ex}${done.has(allIdx)?'<span class="chip-done">✓</span>':''}`;
+  });
+}
+
+/* ── Card render ── */
+function renderCard(dir){
+  const p = ALL[currentIdx];
+  document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
+  document.getElementById('patternName').textContent = p.beats.replace(/\|/g,' · ');
+  document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
+
+  // Build beat display
+  const disp = document.getElementById('beatDisplay');
+  disp.innerHTML = '';
+  const groups = groupsOf(p);
+  groups.forEach((group, gi)=>{
+    if(gi>0){
+      const sep = document.createElement('div');
+      sep.className = 'beat-sep';
+      disp.appendChild(sep);
+    }
+    group.forEach(h=>{
+      const cell = document.createElement('div');
+      const hand = h.toUpperCase() === 'D' ? 'D' : 'I';
+      cell.className = `beat-cell ${hand==='D'?'R':'L'}`;
+      cell.innerHTML = `<span>${hand}</span><span class="beat-num">${hand==='D'?'Der':'Izq'}</span>`;
+      disp.appendChild(cell);
+    });
+  });
+
+  document.getElementById('beatCounterLabel').textContent = 'Pulso: — / ' + currentPattern().length;
+
+  // Animate
+  const card = document.getElementById('practiceCard');
+  card.classList.remove('anim-in','anim-in-r');
+  void card.offsetWidth;
+  if(dir===1)  card.classList.add('anim-in');
+  if(dir===-1) card.classList.add('anim-in-r');
+}
+
+function selectPattern(allIdx, dir){
+  if(isPlaying) stopPlay();
+  currentIdx = allIdx;
+  renderCard(dir);
+  refreshChips();
+  updateNavArrows();
+}
+
+function navigate(dir){
+  const fi = filteredIdxs.indexOf(currentIdx);
+  const nfi = fi + dir;
+  if(nfi < 0 || nfi >= filteredIdxs.length) return;
+  selectPattern(filteredIdxs[nfi], dir);
+}
+
+function updateNavArrows(){
+  const fi = filteredIdxs.indexOf(currentIdx);
+  document.getElementById('navPrev').disabled = fi <= 0;
+  document.getElementById('navNext').disabled = fi >= filteredIdxs.length - 1;
+}
+
+/* ── Progress ── */
+function toggleDone(){
+  if(done.has(currentIdx)) done.delete(currentIdx);
+  else done.add(currentIdx);
+  localStorage.setItem('scDone', JSON.stringify([...done]));
+  document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
+  refreshChips();
+  updateProgress();
+}
+
+function updateProgress(){
+  const n = done.size;
+  document.getElementById('doneCount').textContent = n;
+  document.getElementById('totalCount').textContent = TOTAL;
+  document.getElementById('progressFill').style.width = (n/TOTAL*100)+'%';
+}
+
+/* ── Keyboard shortcuts ── */
+document.addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+  if(e.code==='ArrowRight'){ e.preventDefault(); navigate(1); }
+  if(e.code==='ArrowLeft'){ e.preventDefault(); navigate(-1); }
+});
+
+/* ── Init ── */
+function init(){
+  buildSectionTabs();
+  buildChips();
+  buildTempoPresets();
+  renderCard();
+  updateNavArrows();
+  updateProgress();
+}
+
+init();
+</script>
+
+  <script>
+    (function () {
+      /* Fade-in on load */
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          document.body.classList.add('page-loaded');
+        });
+      });
+
+      document.querySelectorAll('a[href]').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          var href = this.getAttribute('href');
+          if (!href || href.startsWith('#') || this.target) return;
+          try { if (new URL(href, location.href).origin !== location.origin) return; } catch (_) { return; }
+          e.preventDefault();
+          document.body.classList.add('page-exit');
+          setTimeout(function () { location.href = href; }, 340);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

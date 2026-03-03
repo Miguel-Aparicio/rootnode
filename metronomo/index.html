@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metrónomo &mdash; migueguay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: #152236;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 3rem;
+      background-image:
+        radial-gradient(ellipse 90% 55% at 50% -5%, rgba(14,165,233,0.22) 0%, transparent 65%);
+    }
+
+    /* ── Nav ── */
+    .nav { width: 100%; max-width: 520px; margin-bottom: 2rem; }
+    .nav a {
+      color: #38bdf8; text-decoration: none; font-size: 0.8rem; font-weight: 500;
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      letter-spacing: 0.02em; opacity: 0.7; transition: opacity 0.2s;
+    }
+    .nav a:hover { opacity: 1; }
+
+    /* ── Card ── */
+    .card {
+      background: #1c3050;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 2rem;
+      padding: 2.5rem 2rem;
+      width: 100%; max-width: 520px;
+      display: flex; flex-direction: column; align-items: center; gap: 0;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.07) inset,
+        0 24px 48px rgba(0,0,0,0.35);
+    }
+
+    /* ── Section divider ── */
+    .section {
+      width: 100%;
+      padding: 1.5rem 0;
+      border-top: 1px solid rgba(148,163,184,0.2);
+    }
+    .section:first-child { border-top: none; padding-top: 0; }
+    .section-label {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.14em; color: #94a3b8;
+      margin-bottom: 1rem; text-align: center;
+    }
+
+    /* ── Title ── */
+    h1 {
+      font-size: 1rem; font-weight: 600; color: #94a3b8;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      text-align: center; margin-bottom: 1.5rem;
+    }
+
+    /* ── Pendulum ── */
+    .pendulum-wrap {
+      width: 100%; height: 86px;
+      position: relative; display: flex;
+      align-items: flex-start; justify-content: center;
+    }
+    .pendulum-line {
+      position: absolute; top: 0;
+      width: 2px; height: 66px;
+      background: linear-gradient(to bottom, rgba(148,163,184,0.3), rgba(148,163,184,0.7));
+      transform-origin: top center; border-radius: 1px;
+    }
+    .pendulum-line::after {
+      content: ''; position: absolute; bottom: -9px; left: 50%;
+      transform: translateX(-50%);
+      width: 18px; height: 18px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #7dd3fc, #0369a1);
+      box-shadow: 0 0 14px rgba(56,189,248,0.5), 0 0 4px rgba(56,189,248,0.8);
+    }
+
+    /* ── Beat dots ── */
+    .beats { display: flex; gap: 0.7rem; justify-content: center; min-height: 20px; }
+    .beat-dot {
+      width: 11px; height: 11px; border-radius: 50%;
+      background: rgba(148,163,184,0.3);
+      border: 1px solid rgba(148,163,184,0.5);
+      transition: background 0.04s, transform 0.04s, box-shadow 0.04s;
+    }
+    .beat-dot.accent {
+      background: rgba(14,165,233,0.55);
+      border-color: rgba(14,165,233,0.8);
+    }
+    .beat-dot.active {
+      background: #38bdf8;
+      border-color: #38bdf8;
+      transform: scale(1.5);
+      box-shadow: 0 0 8px rgba(56,189,248,0.7);
+    }
+    .beat-dot.accent.active {
+      background: #e879f9;
+      border-color: #e879f9;
+      transform: scale(1.6);
+      box-shadow: 0 0 10px rgba(232,121,249,0.7);
+    }
+
+    /* ── BPM ── */
+    .bpm-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; width: 100%; }
+    .bpm-row  { display: flex; align-items: center; justify-content: center; gap: 1.25rem; }
+    .bpm-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid rgba(148,163,184,0.3);
+      background: rgba(148,163,184,0.08);
+      color: #94a3b8; font-size: 1.1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .bpm-btn:hover { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.08); }
+    .bpm-center { display: flex; flex-direction: column; align-items: center; }
+    .bpm-number {
+      font-size: 5.5rem; font-weight: 900; color: #f8fafc; line-height: 1;
+      min-width: 3ch; text-align: center; cursor: text;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+      border: 2px solid transparent; border-radius: 0.5rem;
+      padding: 0 0.3rem; transition: border-color 0.2s;
+      letter-spacing: -0.03em;
+    }
+    .bpm-number:focus { outline: none; border-color: rgba(56,189,248,0.4); }
+    .bpm-unit {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.2em; color: #64748b; margin-top: 0.1rem;
+    }
+
+    /* ── Slider ── */
+    .slider-wrap { width: 100%; }
+    input[type=range] {
+      -webkit-appearance: none; width: 100%; height: 3px;
+      border-radius: 2px; outline: none; cursor: pointer;
+      background: linear-gradient(
+        to right,
+        #0ea5e9 0%, #0ea5e9 var(--pct,30%),
+        rgba(148,163,184,0.3) var(--pct,30%), rgba(148,163,184,0.3) 100%
+      );
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+      background: #f8fafc;
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.25), 0 2px 6px rgba(0,0,0,0.4);
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 0 4px rgba(56,189,248,0.35), 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .slider-limits {
+      display: flex; justify-content: space-between;
+      font-size: 0.65rem; color: #64748b; margin-top: 0.5rem;
+      font-weight: 600; letter-spacing: 0.05em;
+    }
+
+    /* ── Time signature picker ── */
+    .ts-wrap {
+      display: flex; align-items: center; justify-content: center; gap: 2rem;
+    }
+    .ts-display {
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .ts-col {
+      display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+    }
+    .ts-arrow {
+      width: 36px; height: 22px;
+      border: 1px solid rgba(148,163,184,0.25);
+      background: rgba(148,163,184,0.07);
+      color: #64748b; font-size: 0.55rem;
+      cursor: pointer; border-radius: 0.4rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; font-family: inherit; user-select: none;
+    }
+    .ts-arrow:hover { color: #38bdf8; border-color: rgba(56,189,248,0.45); background: rgba(56,189,248,0.08); }
+    .ts-arrow:disabled { opacity: 0.25; cursor: default; }
+    .ts-number {
+      font-size: 3.2rem; font-weight: 900; color: #f1f5f9;
+      font-variant-numeric: tabular-nums; line-height: 1;
+      min-width: 2ch; text-align: center; letter-spacing: -0.02em;
+      transition: color 0.2s;
+    }
+    .ts-slash {
+      font-size: 3.2rem; font-weight: 200; color: #475569;
+      line-height: 1; align-self: center; padding: 0 0.1rem;
+    }
+    .ts-libre-btn {
+      padding: 0.45rem 1.1rem; border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.25);
+      background: rgba(148,163,184,0.07); color: #64748b;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.03em;
+      cursor: pointer; transition: all 0.15s; font-family: inherit;
+    }
+    .ts-libre-btn:hover { border-color: rgba(56,189,248,0.45); color: #94a3b8; }
+    .ts-libre-btn.active {
+      background: rgba(14,165,233,0.15); border-color: rgba(14,165,233,0.5);
+      color: #38bdf8;
+    }
+    .ts-display.libre .ts-number { color: #334155; }
+
+    /* ── Note selector ── */
+    .note-sel {
+      display: flex; flex-wrap: nowrap; gap: 0.3rem;
+      justify-content: center; width: 100%;
+    }
+    .note-btn {
+      display: flex; align-items: center; justify-content: center;
+      padding: 0.45rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.28);
+      background: rgba(148,163,184,0.08);
+      color: #94a3b8; cursor: pointer;
+      transition: all 0.18s; line-height: 1;
+      font-family: inherit; flex-shrink: 0;
+    }
+    .note-btn:hover {
+      border-color: rgba(56,189,248,0.55);
+      color: #cbd5e1;
+      background: rgba(56,189,248,0.1);
+    }
+    .note-btn.active {
+      border-color: rgba(56,189,248,0.55);
+      background: rgba(14,165,233,0.14);
+      color: #38bdf8;
+    }
+    .note-btn svg { display: block; overflow: visible; flex-shrink: 0; }
+    .note-btn .nname { display: none; }
+    .note-btn .nsub  { display: none; }
+    @keyframes rand-hue {
+      0%   { color: #38bdf8; border-color: rgba(56,189,248,0.55); background: rgba(14,165,233,0.14); }
+      25%  { color: #a78bfa; border-color: rgba(167,139,250,0.55); background: rgba(139,92,246,0.14); }
+      50%  { color: #34d399; border-color: rgba(52,211,153,0.55); background: rgba(16,185,129,0.14); }
+      75%  { color: #fb923c; border-color: rgba(251,146,60,0.55);  background: rgba(249,115,22,0.14); }
+      100% { color: #38bdf8; border-color: rgba(56,189,248,0.55); background: rgba(14,165,233,0.14); }
+    }
+    .note-btn.rand-active {
+      animation: rand-hue 2s infinite linear;
+      border-color: rgba(56,189,248,0.55);
+      background: rgba(14,165,233,0.14);
+      color: #38bdf8;
+    }
+
+    /* ── Controls ── */
+    .controls { display: flex; gap: 0.75rem; width: 100%; }
+    .btn-start {
+      flex: 1; padding: 1rem; border-radius: 1rem; border: none;
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: #fff; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.04em; font-family: inherit;
+      box-shadow: 0 4px 20px rgba(14,165,233,0.25);
+      transition: all 0.2s;
+    }
+    .btn-start:hover {
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+      box-shadow: 0 4px 28px rgba(56,189,248,0.35);
+      transform: translateY(-1px);
+    }
+    .btn-start:active { transform: scale(0.98); }
+    .btn-start.running {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      box-shadow: 0 4px 20px rgba(239,68,68,0.25);
+    }
+    .btn-start.running:hover {
+      background: linear-gradient(135deg, #f87171, #ef4444);
+      box-shadow: 0 4px 28px rgba(239,68,68,0.35);
+    }
+    .btn-tap {
+      padding: 1rem 1.3rem; border-radius: 1rem;
+      border: 1px solid rgba(148,163,184,0.3);
+      background: rgba(148,163,184,0.1);
+      color: #cbd5e1; font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+      font-family: inherit; letter-spacing: 0.06em;
+    }
+    .btn-tap:hover  { border-color: rgba(56,189,248,0.35); color: #e2e8f0; }
+    .btn-tap:active { transform: scale(0.95); background: rgba(56,189,248,0.1); }
+
+    /* ── Timer ── */
+    .timer-header {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: rgba(148,163,184,0.14);
+      border-radius: 999px; border: 1px solid rgba(148,163,184,0.28);
+      transition: all 0.2s;
+    }
+    .toggle input:checked + .toggle-track {
+      background: rgba(14,165,233,0.2); border-color: rgba(14,165,233,0.5);
+    }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 3px;
+      width: 12px; height: 12px; border-radius: 50%; background: #94a3b8;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle input:checked ~ .toggle-thumb {
+      transform: translateX(16px); background: #38bdf8;
+    }
+    .timer-body { display: none; flex-direction: column; align-items: center; gap: 1rem; margin-top: 1.25rem; }
+    .timer-body.visible { display: flex; }
+
+    /* Presets */
+    .timer-presets { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; }
+    .preset-btn {
+      padding: 0.25rem 0.7rem; border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.28);
+      background: rgba(148,163,184,0.07); color: #94a3b8;
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em;
+      cursor: pointer; transition: all 0.15s; font-family: inherit;
+    }
+    .preset-btn:hover { border-color: rgba(56,189,248,0.35); color: #94a3b8; }
+    .preset-btn:disabled { opacity: 0.3; cursor: default; }
+
+    /* Spin fields */
+    .timer-fields { display: flex; align-items: center; gap: 0.25rem; }
+    .timer-field  { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+    .timer-field label {
+      font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #64748b;
+    }
+    .field-spin { display: flex; flex-direction: column; align-items: center; }
+    .spin-btn {
+      width: 42px; height: 20px;
+      border: 1px solid rgba(148,163,184,0.28); background: rgba(148,163,184,0.07);
+      color: #64748b; font-size: 0.65rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.12s; user-select: none; font-family: inherit;
+    }
+    .spin-btn:first-child { border-radius: 0.4rem 0.4rem 0 0; }
+    .spin-btn:last-child  { border-radius: 0 0 0.4rem 0.4rem; }
+    .spin-btn:hover { color: #38bdf8; border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.06); }
+    .spin-btn:disabled { opacity: 0.25; cursor: default; }
+    .field-val {
+      width: 42px; text-align: center;
+      background: rgba(148,163,184,0.1);
+      border: 1px solid rgba(148,163,184,0.28);
+      border-top: none; border-bottom: none;
+      color: #f1f5f9; font-size: 1.8rem; font-weight: 800;
+      font-variant-numeric: tabular-nums; line-height: 1;
+      padding: 0.15rem 0; outline: none; cursor: text;
+      -moz-appearance: textfield; font-family: inherit;
+    }
+    .field-val::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .field-val:focus { color: #38bdf8; background: rgba(56,189,248,0.05); }
+    .field-val:disabled { color: #64748b; cursor: default; }
+    .timer-sep {
+      font-size: 1.8rem; font-weight: 300; color: #475569;
+      margin-bottom: 1.6rem; align-self: center;
+    }
+    .timer-countdown {
+      font-size: 2.6rem; font-weight: 800; color: #f1f5f9;
+      font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
+      text-align: center; line-height: 1; font-family: inherit;
+    }
+    .timer-countdown.warning { color: #f59e0b; }
+    .timer-countdown.urgent  { color: #ef4444; }
+
+    @keyframes shimmer {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(400%); }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.55; }
+    }
+    .timer-progress {
+      width: 100%; height: 4px;
+      background: rgba(148,163,184,0.2);
+      border-radius: 999px; overflow: hidden;
+    }
+    .timer-progress-bar {
+      position: relative; height: 100%; width: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #0369a1, #38bdf8, #bae6fd);
+      box-shadow: 0 0 8px rgba(56,189,248,0.6);
+      transition: width 0.9s linear, background 0.4s, box-shadow 0.4s;
+      overflow: hidden;
+    }
+    .timer-progress-bar::after {
+      content: ''; position: absolute; top: 0; left: 0;
+      width: 25%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+      animation: shimmer 2.5s infinite linear; border-radius: 999px;
+    }
+    .timer-progress-bar.warning {
+      background: linear-gradient(90deg, #78350f, #f59e0b, #fde68a);
+      box-shadow: 0 0 8px rgba(245,158,11,0.6);
+    }
+    .timer-progress-bar.urgent {
+      background: linear-gradient(90deg, #7f1d1d, #ef4444, #fca5a5);
+      box-shadow: 0 0 10px rgba(239,68,68,0.7);
+      animation: pulse-glow 0.8s infinite ease-in-out;
+    }
+    .timer-progress-bar.urgent::after { animation: none; }
+
+    /* ── Page transitions ── */
+    @keyframes pageEnter {
+      from { opacity: 0; transform: scale(0.97) translateY(8px); filter: blur(3px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
+    }
+    @keyframes pageExit {
+      from { opacity: 1; transform: scale(1);    filter: blur(0);   }
+      to   { opacity: 0; transform: scale(0.98); filter: blur(3px); }
+    }
+    /* Start invisible; JS adds .page-loaded after first paint to trigger enter */
+    body {
+      opacity: 0;
+    }
+    body.page-loaded {
+      animation: pageEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    body.page-exit {
+      animation: pageExit 0.32s ease-out both;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav"><a href="/">&#8592; Inicio</a></div>
+  <div class="card">
+    <h1>Metrónomo</h1>
+    <div class="section" style="padding-top:0; border-top:none;">
+      <div class="pendulum-wrap"><div class="pendulum-line" id="pendulum"></div></div>
+      <div class="beats" id="beats" style="margin-top:1.25rem;"></div>
+    </div>
+
+    <div class="section">
+      <div class="bpm-wrap">
+        <div class="bpm-row">
+          <button class="bpm-btn" id="btn-minus">&#8722;</button>
+          <div class="bpm-center">
+            <div class="bpm-number" id="bpm-display" contenteditable="true" spellcheck="false">120</div>
+            <div class="bpm-unit">BPM</div>
+          </div>
+          <button class="bpm-btn" id="btn-plus">+</button>
+        </div>
+        <div class="slider-wrap" style="margin-top:1.25rem;">
+          <input type="range" id="bpm-slider" min="5" max="300" value="120" />
+          <div class="slider-limits"><span>5</span><span>300</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Compás</div>
+      <div class="ts-wrap">
+        <div class="ts-display" id="ts-display">
+          <div class="ts-col">
+            <button class="ts-arrow" id="num-up">&#9650;</button>
+            <span class="ts-number" id="ts-num">4</span>
+            <button class="ts-arrow" id="num-down">&#9660;</button>
+          </div>
+          <div class="ts-slash">/</div>
+          <div class="ts-col">
+            <button class="ts-arrow" id="den-up">&#9650;</button>
+            <span class="ts-number" id="ts-den">4</span>
+            <button class="ts-arrow" id="den-down">&#9660;</button>
+          </div>
+        </div>
+        <button class="ts-libre-btn" id="ts-libre">Libre</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Figura</div>
+      <div class="note-sel" id="note-sel">
+
+        <button class="note-btn" data-sub="0.25">
+          <svg width="18" height="24" viewBox="0 0 28 36">
+            <ellipse cx="14" cy="26" rx="9" ry="6" fill="none" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <span class="nname">Redonda</span>
+          <span class="nsub">cada 4 tiempos</span>
+        </button>
+
+        <button class="note-btn" data-sub="0.5">
+          <svg width="18" height="24" viewBox="0 0 28 36">
+            <ellipse cx="14" cy="28" rx="8" ry="5.5" fill="none" stroke="currentColor" stroke-width="2"/>
+            <line x1="22" y1="28" x2="22" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="nname">Blanca</span>
+          <span class="nsub">cada 2 tiempos</span>
+        </button>
+
+        <button class="note-btn active" data-sub="1">
+          <svg width="18" height="24" viewBox="0 0 28 36">
+            <ellipse cx="13" cy="28" rx="8" ry="5.5" fill="currentColor" transform="rotate(-15 13 28)"/>
+            <line x1="21" y1="26" x2="21" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="nname">Negra</span>
+          <span class="nsub">1 tiempo</span>
+        </button>
+
+        <button class="note-btn" data-sub="2">
+          <svg width="18" height="24" viewBox="0 0 28 36">
+            <ellipse cx="12" cy="28" rx="8" ry="5.5" fill="currentColor" transform="rotate(-15 12 28)"/>
+            <line x1="20" y1="26" x2="20" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 4 C28 8, 26 16, 20 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="nname">Corchea</span>
+          <span class="nsub">÷ 2</span>
+        </button>
+
+        <button class="note-btn" data-sub="4">
+          <svg width="18" height="24" viewBox="0 0 28 36">
+            <ellipse cx="12" cy="28" rx="8" ry="5.5" fill="currentColor" transform="rotate(-15 12 28)"/>
+            <line x1="20" y1="26" x2="20" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 4 C28 8, 26 14, 20 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 10 C28 14, 26 20, 20 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="nname">Semicorchea</span>
+          <span class="nsub">÷ 4</span>
+        </button>
+
+        <button class="note-btn" data-sub="3">
+          <svg width="18" height="24" viewBox="0 0 28 36">
+            <ellipse cx="12" cy="28" rx="8" ry="5.5" fill="currentColor" transform="rotate(-15 12 28)"/>
+            <line x1="20" y1="26" x2="20" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 4 C28 8, 26 16, 20 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <text x="23" y="10" font-size="9" font-weight="bold" fill="currentColor" font-family="sans-serif">3</text>
+          </svg>
+          <span class="nname">Tresillo</span>
+          <span class="nsub">÷ 3</span>
+        </button>
+
+        <button class="note-btn" id="btn-random" data-sub="random">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 3 21 3 21 8"/>
+            <line x1="4" y1="20" x2="21" y2="3"/>
+            <polyline points="21 16 21 21 16 21"/>
+            <line x1="15" y1="15" x2="21" y2="21"/>
+          </svg>
+          <span class="nname">Random</span>
+          <span class="nsub">aleatorio</span>
+        </button>
+
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="timer-header">
+        <div class="section-label" style="margin-bottom:0;">Temporizador</div>
+        <label class="toggle">
+          <input type="checkbox" id="timer-toggle" />
+          <span class="toggle-track"></span>
+          <span class="toggle-thumb"></span>
+        </label>
+      </div>
+      <div class="timer-body" id="timer-body">
+        <div class="timer-presets">
+          <button class="preset-btn" data-s="300">5 min</button>
+          <button class="preset-btn" data-s="600">10 min</button>
+          <button class="preset-btn" data-s="900">15 min</button>
+          <button class="preset-btn" data-s="1800">30 min</button>
+          <button class="preset-btn" data-s="3600">1 h</button>
+          <button class="preset-btn" data-s="5400">1 h 30</button>
+          <button class="preset-btn" data-s="7200">2 h</button>
+        </div>
+        <div class="timer-fields">
+          <div class="timer-field">
+            <div class="field-spin">
+              <button class="spin-btn" data-field="hr" data-dir="1">&#9650;</button>
+              <input class="field-val" id="timer-hr" type="number" value="0" min="0" max="23" />
+              <button class="spin-btn" data-field="hr" data-dir="-1">&#9660;</button>
+            </div>
+            <label>h</label>
+          </div>
+          <span class="timer-sep">:</span>
+          <div class="timer-field">
+            <div class="field-spin">
+              <button class="spin-btn" data-field="min" data-dir="1">&#9650;</button>
+              <input class="field-val" id="timer-min" type="number" value="5" min="0" max="59" />
+              <button class="spin-btn" data-field="min" data-dir="-1">&#9660;</button>
+            </div>
+            <label>min</label>
+          </div>
+          <span class="timer-sep">:</span>
+          <div class="timer-field">
+            <div class="field-spin">
+              <button class="spin-btn" data-field="sec" data-dir="1">&#9650;</button>
+              <input class="field-val" id="timer-sec" type="number" value="0" min="0" max="59" />
+              <button class="spin-btn" data-field="sec" data-dir="-1">&#9660;</button>
+            </div>
+            <label>seg</label>
+          </div>
+        </div>
+        <div class="timer-countdown" id="timer-countdown">00:05:00</div>
+        <div class="timer-progress"><div class="timer-progress-bar" id="timer-bar"></div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="controls">
+        <button class="btn-start" id="btn-start">&#9654;&ensp;Iniciar</button>
+        <button class="btn-tap" id="btn-tap">TAP</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let bpm = 120, beats = 4, denominator = 4, running = false, currentBeat = 0, tickCount = 0;
+    let subdivisions = 1;  // clicks per quarter-note beat (≥1 = sub-divides, <1 = slower pulse)
+    let randomMode = false;
+    let randPattern = [], randPatternIdx = 0;
+    // (RAND_SUBS no longer used — replaced by pattern generator)
+    let nextBeatTime = 0, timerID = null, audioCtx = null;
+    let schedGen = 0; // increments on each stop() to invalidate pending visual callbacks
+    const tapTimes = [];
+
+    // Timer
+    let timerEnabled = false, timerTotal = 0, timerRemaining = 0, timerCountID = null;
+    const timerToggle    = document.getElementById('timer-toggle');
+    const timerBody      = document.getElementById('timer-body');
+    const timerHrInput   = document.getElementById('timer-hr');
+    const timerMinInput  = document.getElementById('timer-min');
+    const timerSecInput  = document.getElementById('timer-sec');
+    const timerCountdown = document.getElementById('timer-countdown');
+    const timerBar       = document.getElementById('timer-bar');
+
+    const bpmDisplay = document.getElementById('bpm-display');
+    const bpmSlider  = document.getElementById('bpm-slider');
+    const btnMinus   = document.getElementById('btn-minus');
+    const btnPlus    = document.getElementById('btn-plus');
+    const btnStart   = document.getElementById('btn-start');
+    const btnTap     = document.getElementById('btn-tap');
+    const beatsEl    = document.getElementById('beats');
+    const pendulum   = document.getElementById('pendulum');
+    const timeSigEl  = document.getElementById('ts-display');
+    const tsNumEl    = document.getElementById('ts-num');
+    const tsDenEl    = document.getElementById('ts-den');
+    const tsLibreBtn = document.getElementById('ts-libre');
+    const numUpBtn   = document.getElementById('num-up');
+    const numDownBtn = document.getElementById('num-down');
+    const denUpBtn   = document.getElementById('den-up');
+    const denDownBtn = document.getElementById('den-down');
+    const noteSelEl  = document.getElementById('note-sel');
+
+    const DEN_VALUES = [2, 4, 8, 16];
+    let isLibre = false;
+
+    function updateTSDisplay() {
+      tsNumEl.textContent = beats;
+      tsDenEl.textContent = denominator;
+      numUpBtn.disabled   = isLibre || beats >= 16;
+      numDownBtn.disabled = isLibre || beats <= 1;
+      const di = DEN_VALUES.indexOf(denominator);
+      denUpBtn.disabled   = isLibre || di >= DEN_VALUES.length - 1;
+      denDownBtn.disabled = isLibre || di <= 0;
+      timeSigEl.classList.toggle('libre', isLibre);
+      tsLibreBtn.classList.toggle('active', isLibre);
+    }
+
+    function setBeats(n) {
+      beats = n; currentBeat = 0;
+      buildDots();
+      updateTSDisplay();
+    }
+
+    function setDenominator(d) {
+      denominator = d;
+      updateTSDisplay();
+    }
+
+    updateTSDisplay();
+
+    function buildDots() {
+      beatsEl.innerHTML = '';
+      if (beats === 0) return;
+      for (let i = 0; i < beats; i++) {
+        const d = document.createElement('div');
+        d.className = 'beat-dot' + (i === 0 ? ' accent' : '');
+        beatsEl.appendChild(d);
+      }
+    }
+    buildDots();
+
+    function updateSliderGradient() {
+      const pct = ((bpm - 5) / 295 * 100).toFixed(1) + '%';
+      bpmSlider.style.setProperty('--pct', pct);
+    }
+
+    function setBPM(v) {
+      bpm = Math.min(300, Math.max(5, Math.round(v)));
+      bpmDisplay.textContent = bpm;
+      bpmSlider.value = bpm;
+      updateSliderGradient();
+    }
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playClick(accent, time) {
+      if (!audioCtx) return;
+      const t = (time !== undefined) ? time : audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.frequency.value = accent ? 1200 : 800;
+      gain.gain.setValueAtTime(accent ? 0.6 : 0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc.start(t);
+      osc.stop(t + 0.09);
+    }
+
+    function playSubClick(time) {
+      if (!audioCtx) return;
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.frequency.value = 500;
+      gain.gain.setValueAtTime(0.12, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+      osc.start(time);
+      osc.stop(time + 0.06);
+    }
+
+    // Generate a random rhythmic pattern that fills one bar.
+    // Unit = 8th note (beatDur/2). Possible durations (in units): 1=corchea, 2=negra, 3=negra con puntillo, 4=blanca.
+    function generateRandPattern(barStartTime, unitDur, totalUnits) {
+      const events = [];
+      let pos = 0;
+      function pickDur(avail) {
+        // weighted pool: corchea×3, negra×4, n.puntillo×2, blanca×1 — filtered to what fits
+        const pool = [1,1,1, 2,2,2,2, 3,3, 4].filter(d => d <= avail);
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+      while (pos < totalUnits) {
+        const avail = totalUnits - pos;
+        const dur   = pickDur(avail);
+        const isRest = Math.random() < (pos === 0 ? 0.22 : 0.38); // beat 1: 22% rest, rest of events: 38%
+        events.push({ time: barStartTime + pos * unitDur, isRest, isAccent: pos === 0 });
+        pos += dur;
+      }
+      return events;
+    }
+
+    function playAlarm() {
+      initAudio();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      // Tres campanadas suaves con armónicos (efecto campana/chime)
+      const notes = [523.25, 659.25, 783.99]; // Do5 - Mi5 - Sol5 (acorde Mayor)
+      notes.forEach((freq, i) => {
+        const t = audioCtx.currentTime + i * 0.45;
+        // Capa fundamental
+        [1, 2.756, 5.404].forEach((ratio, j) => {
+          const osc  = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq * ratio, t);
+          const vol = [0.5, 0.15, 0.05][j];
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(vol, t + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+          osc.start(t);
+          osc.stop(t + 1.3);
+        });
+      });
+    }
+
+    function schedule() {
+      const beatDur    = (60.0 / bpm) * (4 / denominator);
+      const barBeats   = beats > 0 ? beats : 4;
+      const unitDur    = beatDur / 2;   // 8th-note unit
+      const totalUnits = barBeats * 2;
+
+      while (nextBeatTime < audioCtx.currentTime + 0.1) {
+        const isAccent   = beats > 0 && currentBeat === 0;
+        const isBarStart = (currentBeat === 0) || (beats === 0 && tickCount % barBeats === 0);
+
+        if (randomMode) {
+          // At every bar start, generate a fresh rhythmic pattern
+          if (isBarStart) {
+            randPattern    = generateRandPattern(nextBeatTime, unitDur, totalUnits);
+            randPatternIdx = 0;
+          }
+          // No regular click — rand pattern events handle all audio this bar
+        } else {
+          if (subdivisions >= 1) {
+            playClick(isAccent, nextBeatTime);
+            const subCount    = subdivisions > 1 ? Math.round(subdivisions) : 0;
+            const subInterval = subCount > 0 ? beatDur / subCount : 0;
+            for (let s = 1; s < subCount; s++) playSubClick(nextBeatTime + s * subInterval);
+          } else {
+            const every = Math.round(1 / subdivisions);
+            const ref   = beats > 0 ? currentBeat : tickCount;
+            if (ref % every === 0) playClick(isAccent, nextBeatTime);
+          }
+        }
+
+        // Visual: beat dots + pendulum always at quarter-note tempo
+        const beat  = currentBeat;
+        const tick  = tickCount;
+        const when  = nextBeatTime;
+        const gen   = schedGen;
+        const delay = (when - audioCtx.currentTime) * 1000;
+        setTimeout(() => {
+          if (gen !== schedGen) return;
+          beatsEl.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
+          const dots = beatsEl.querySelectorAll('.beat-dot');
+          if (dots[beat]) dots[beat].classList.add('active');
+          const angle = tick % 2 === 0 ? -28 : 28;
+          pendulum.style.transform  = 'rotate(' + angle + 'deg)';
+          pendulum.style.transition = 'transform ' + (beatDur * 0.85).toFixed(3) + 's ease-in-out';
+        }, Math.max(0, delay));
+
+        currentBeat = beats > 0 ? (currentBeat + 1) % beats : 0;
+        tickCount++;
+        nextBeatTime += beatDur;
+      }
+
+      // Drain any random pattern audio events that fall in the lookahead window
+      if (randomMode) {
+        while (randPatternIdx < randPattern.length &&
+               randPattern[randPatternIdx].time < audioCtx.currentTime + 0.1) {
+          const evt = randPattern[randPatternIdx++];
+          if (!evt.isRest) playClick(evt.isAccent, evt.time);
+        }
+      }
+    }
+
+    function formatTime(s) {
+      const h   = Math.floor(s / 3600);
+      const m   = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+    }
+
+    function getTimerSeconds() {
+      const h = Math.max(0, parseInt(timerHrInput.value)  || 0);
+      const m = Math.max(0, parseInt(timerMinInput.value) || 0);
+      const s = Math.max(0, Math.min(59, parseInt(timerSecInput.value) || 0));
+      return h * 3600 + m * 60 + s;
+    }
+
+    function setTimerFields(totalSecs) {
+      const h = Math.floor(totalSecs / 3600);
+      const m = Math.floor((totalSecs % 3600) / 60);
+      const s = totalSecs % 60;
+      timerHrInput.value  = h;
+      timerMinInput.value = m;
+      timerSecInput.value = s;
+    }
+
+    function updateCountdownDisplay() {
+      timerCountdown.textContent = formatTime(timerRemaining);
+      const pct = timerTotal > 0 ? (timerRemaining / timerTotal * 100) : 100;
+      timerBar.style.width = pct + '%';
+      const urgent  = timerRemaining <= 10;
+      const warning = !urgent && timerRemaining <= 30;
+      timerBar.classList.toggle('urgent',  urgent);
+      timerBar.classList.toggle('warning', warning);
+      timerCountdown.className = 'timer-countdown' + (urgent ? ' urgent' : warning ? ' warning' : '');
+    }
+
+    function setFieldsDisabled(disabled) {
+      [timerHrInput, timerMinInput, timerSecInput].forEach(el => el.disabled = disabled);
+      document.querySelectorAll('.spin-btn, .preset-btn').forEach(el => el.disabled = disabled);
+    }
+
+    function startCountdown() {
+      if (!timerEnabled) return;
+      timerTotal = getTimerSeconds();
+      if (timerTotal <= 0) return;
+      timerRemaining = timerTotal;
+      updateCountdownDisplay();
+      setFieldsDisabled(true);
+      timerCountID = setInterval(() => {
+        timerRemaining--;
+        updateCountdownDisplay();
+        if (timerRemaining <= 0) {
+          clearInterval(timerCountID);
+          stop();
+          playAlarm();
+        }
+      }, 1000);
+    }
+
+    function stopCountdown() {
+      clearInterval(timerCountID);
+      setFieldsDisabled(false);
+      if (timerEnabled) {
+        timerRemaining = getTimerSeconds();
+        timerTotal = timerRemaining;
+        updateCountdownDisplay();
+        timerBar.style.width = '100%';
+        timerBar.classList.remove('warning', 'urgent');
+      }
+    }
+
+    function start() {
+      initAudio();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      running = true; currentBeat = 0; tickCount = 0;
+      randPattern = []; randPatternIdx = 0;
+      nextBeatTime = audioCtx.currentTime + 0.05;
+      timerID = setInterval(schedule, 25);
+      btnStart.textContent = '⏹ Detener';
+      btnStart.classList.add('running');
+      startCountdown();
+    }
+
+    function stop() {
+      schedGen++; // invalidate any pending visual setTimeout callbacks
+      running = false; clearInterval(timerID);
+      beatsEl.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
+      pendulum.style.transition = 'transform 0.6s cubic-bezier(0.34,1.56,0.64,1)';
+      pendulum.style.transform  = 'rotate(0deg)';
+      btnStart.textContent = '▶ Iniciar';
+      btnStart.classList.remove('running');
+      stopCountdown();
+    }
+
+    function restart() { stop(); start(); }
+
+    btnStart.addEventListener('click', () => running ? stop() : start());
+    btnMinus.addEventListener('click', () => setBPM(bpm - 1));
+    btnPlus.addEventListener('click',  () => setBPM(bpm + 1));
+    bpmSlider.addEventListener('input', () => setBPM(+bpmSlider.value));
+    bpmDisplay.addEventListener('blur', () => {
+      const v = parseInt(bpmDisplay.textContent, 10);
+      setBPM(isNaN(v) ? 120 : v);
+    });
+    bpmDisplay.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); bpmDisplay.blur(); }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); setBPM(bpm + 1); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setBPM(bpm - 1); }
+    });
+    bpmDisplay.addEventListener('wheel', e => {
+      e.preventDefault();
+      setBPM(bpm + (e.deltaY < 0 ? 1 : -1));
+    }, { passive: false });
+
+    noteSelEl.querySelectorAll('.note-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        noteSelEl.querySelectorAll('.note-btn').forEach(b => {
+          b.classList.remove('active', 'rand-active');
+        });
+        if (btn.dataset.sub === 'random') {
+          randomMode = true;
+          btn.classList.add('rand-active');
+          // Pattern will generate at next bar start; reset index so it kicks in cleanly
+          randPattern = []; randPatternIdx = 0;
+        } else {
+          randomMode = false;
+          btn.classList.add('active');
+          subdivisions = parseFloat(btn.dataset.sub);
+          if (running) restart();
+        }
+      });
+    });
+
+    numUpBtn.addEventListener('click', () => { if (beats < 16) { isLibre = false; setBeats(beats + 1); if (running) restart(); } });
+    numDownBtn.addEventListener('click', () => { if (beats > 1) { isLibre = false; setBeats(beats - 1); if (running) restart(); } });
+    denUpBtn.addEventListener('click', () => {
+      const i = DEN_VALUES.indexOf(denominator);
+      if (i < DEN_VALUES.length - 1) { isLibre = false; setDenominator(DEN_VALUES[i + 1]); }
+    });
+    denDownBtn.addEventListener('click', () => {
+      const i = DEN_VALUES.indexOf(denominator);
+      if (i > 0) { isLibre = false; setDenominator(DEN_VALUES[i - 1]); }
+    });
+    tsLibreBtn.addEventListener('click', () => {
+      isLibre = !isLibre;
+      if (isLibre) { beats = 0; currentBeat = 0; buildDots(); }
+      else { beats = parseInt(tsNumEl.textContent) || 4; currentBeat = 0; buildDots(); }
+      updateTSDisplay();
+      if (running) restart();
+    });
+
+    btnTap.addEventListener('click', () => {
+      const now = performance.now();
+      tapTimes.push(now);
+      if (tapTimes.length > 8) tapTimes.shift();
+      if (tapTimes.length >= 2) {
+        const intervals = [];
+        for (let i = 1; i < tapTimes.length; i++) intervals.push(tapTimes[i] - tapTimes[i-1]);
+        const avg = intervals.reduce((a,b) => a+b, 0) / intervals.length;
+        setBPM(Math.round(60000 / avg));
+      }
+    });
+
+    updateSliderGradient();
+
+    // Timer toggle
+    timerToggle.addEventListener('change', () => {
+      timerEnabled = timerToggle.checked;
+      timerBody.classList.toggle('visible', timerEnabled);
+      if (timerEnabled) {
+        timerRemaining = getTimerSeconds();
+        timerTotal = timerRemaining;
+        updateCountdownDisplay();
+      }
+    });
+
+    // Sync display when inputs change manually
+    [timerHrInput, timerMinInput, timerSecInput].forEach(el => {
+      el.addEventListener('input', () => {
+        timerRemaining = getTimerSeconds();
+        timerTotal = timerRemaining;
+        updateCountdownDisplay();
+      });
+    });
+
+    // Spin buttons
+    document.querySelectorAll('.spin-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const field = btn.dataset.field;
+        const dir   = parseInt(btn.dataset.dir);
+        const input = field === 'hr' ? timerHrInput : field === 'min' ? timerMinInput : timerSecInput;
+        const max   = field === 'hr' ? 23 : 59;
+        let val = (parseInt(input.value) || 0) + dir;
+        if (val < 0) val = max;
+        if (val > max) val = 0;
+        input.value = val;
+        timerRemaining = getTimerSeconds();
+        timerTotal = timerRemaining;
+        updateCountdownDisplay();
+      });
+    });
+
+    // Preset buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const secs = parseInt(btn.dataset.s);
+        setTimerFields(secs);
+        timerRemaining = secs;
+        timerTotal = secs;
+        updateCountdownDisplay();
+      });
+    });
+  </script>
+
+  <script>
+    (function () {
+      /* Fade-in on load */
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          document.body.classList.add('page-loaded');
+        });
+      });
+
+      document.querySelectorAll('a[href]').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          var href = this.getAttribute('href');
+          if (!href || href.startsWith('#') || this.target) return;
+          try { if (new URL(href, location.href).origin !== location.origin) return; } catch (_) { return; }
+          e.preventDefault();
+          document.body.classList.add('page-exit');
+          setTimeout(function () { location.href = href; }, 340);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
