@@ -1,1 +1,1 @@
-# rootnode
+#Aplicación multiaplicaciones.
