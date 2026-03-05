@@ -910,10 +910,23 @@
     }
 
     function setBPM(v) {
+      const oldBpm = bpm;
       bpm = Math.min(300, Math.max(5, Math.round(v)));
       bpmDisplay.textContent = bpm;
       bpmSlider.value = bpm;
       updateSliderGradient();
+
+      if (timerID && audioCtx) {
+        const oldBeatDur = (60.0 / oldBpm) * (4 / denominator);
+        const newBeatDur = (60.0 / bpm)    * (4 / denominator);
+        // Preserve phase: find how far into the current beat we are and scale to new tempo
+        const now       = audioCtx.currentTime;
+        const beatStart = nextBeatTime - oldBeatDur;
+        const phase     = Math.min(1, Math.max(0, (now - beatStart) / oldBeatDur));
+        nextBeatTime    = now + newBeatDur * (1 - phase);
+        // Update pendulum swing speed immediately
+        pendulum.style.transition = 'transform ' + (newBeatDur * 0.85).toFixed(3) + 's ease-in-out';
+      }
     }
 
     function initAudio() {
