@@ -67,16 +67,46 @@
 
     /* ── Pendulum ── */
     .pendulum-wrap {
-      width: 100%; height: 86px;
+      width: 100%; height: 96px;
       position: relative; display: flex;
-      align-items: flex-start; justify-content: center;
+      align-items: center; justify-content: center;
     }
     .pendulum-line {
+      display: none;
       position: absolute; top: 0;
       width: 2px; height: 66px;
       background: linear-gradient(to bottom, rgba(148,163,184,0.3), rgba(148,163,184,0.7));
       transform-origin: top center; border-radius: 1px;
     }
+
+    /* ── Play button (shown when stopped) ── */
+    .play-btn {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: linear-gradient(145deg, #0ea5e9 0%, #0279b7 100%);
+      border: none; color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow:
+        0 0 0 10px rgba(14,165,233,0.10),
+        0 0 36px rgba(14,165,233,0.38),
+        0 4px 20px rgba(0,0,0,0.32);
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      flex-shrink: 0;
+    }
+    .play-btn svg { margin-left: 5px; }
+    .play-btn:hover {
+      transform: scale(1.08);
+      box-shadow:
+        0 0 0 14px rgba(14,165,233,0.13),
+        0 0 44px rgba(56,189,248,0.48),
+        0 4px 20px rgba(0,0,0,0.32);
+      background: linear-gradient(145deg, #38bdf8 0%, #0ea5e9 100%);
+    }
+    .play-btn:active { transform: scale(0.95); }
+
+    /* running state: hide play-btn, show pendulum */
+    .pendulum-wrap.is-running { cursor: pointer; }
+    .pendulum-wrap.is-running .play-btn { display: none; }
+    .pendulum-wrap.is-running .pendulum-line { display: block; }
     .pendulum-line::after {
       content: ''; position: absolute; bottom: -9px; left: 50%;
       transform: translateX(-50%);
@@ -249,40 +279,17 @@
       color: #38bdf8;
     }
 
-    /* ── Controls ── */
-    .controls { display: flex; gap: 0.75rem; width: 100%; }
-    .btn-start {
-      flex: 1; padding: 1rem; border-radius: 1rem; border: none;
-      background: linear-gradient(135deg, #0ea5e9, #0284c7);
-      color: #fff; font-size: 0.95rem; font-weight: 700;
-      cursor: pointer; letter-spacing: 0.04em; font-family: inherit;
-      box-shadow: 0 4px 20px rgba(14,165,233,0.25);
-      transition: all 0.2s;
-    }
-    .btn-start:hover {
-      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
-      box-shadow: 0 4px 28px rgba(56,189,248,0.35);
-      transform: translateY(-1px);
-    }
-    .btn-start:active { transform: scale(0.98); }
-    .btn-start.running {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      box-shadow: 0 4px 20px rgba(239,68,68,0.25);
-    }
-    .btn-start.running:hover {
-      background: linear-gradient(135deg, #f87171, #ef4444);
-      box-shadow: 0 4px 28px rgba(239,68,68,0.35);
-    }
+    /* ── Tap button (inline in BPM section) ── */
     .btn-tap {
-      padding: 1rem 1.3rem; border-radius: 1rem;
+      padding: 0.38rem 1.25rem; border-radius: 999px;
       border: 1px solid rgba(148,163,184,0.3);
-      background: rgba(148,163,184,0.1);
-      color: #cbd5e1; font-size: 0.88rem; font-weight: 700;
+      background: rgba(148,163,184,0.08);
+      color: #94a3b8; font-size: 0.78rem; font-weight: 700;
       cursor: pointer; transition: all 0.15s; white-space: nowrap;
-      font-family: inherit; letter-spacing: 0.06em;
+      font-family: inherit; letter-spacing: 0.08em;
     }
-    .btn-tap:hover  { border-color: rgba(56,189,248,0.35); color: #e2e8f0; }
-    .btn-tap:active { transform: scale(0.95); background: rgba(56,189,248,0.1); }
+    .btn-tap:hover  { border-color: rgba(56,189,248,0.4); color: #e2e8f0; background: rgba(56,189,248,0.08); }
+    .btn-tap:active { transform: scale(0.94); background: rgba(56,189,248,0.13); }
 
     /* ── Timer ── */
     .timer-header {
@@ -431,7 +438,12 @@
   <div class="card">
     <h1>Metrónomo</h1>
     <div class="section" style="padding-top:0; border-top:none;">
-      <div class="pendulum-wrap"><div class="pendulum-line" id="pendulum"></div></div>
+      <div class="pendulum-wrap" id="pendulum-wrap">
+        <button class="play-btn" id="btn-start" title="Iniciar">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,2 20,12 5,22"/></svg>
+        </button>
+        <div class="pendulum-line" id="pendulum"></div>
+      </div>
       <div class="beats" id="beats" style="margin-top:1.25rem;"></div>
     </div>
 
@@ -448,6 +460,9 @@
         <div class="slider-wrap" style="margin-top:1.25rem;">
           <input type="range" id="bpm-slider" min="5" max="300" value="120" />
           <div class="slider-limits"><span>5</span><span>300</span></div>
+        </div>
+        <div style="margin-top:0.85rem; display:flex; justify-content:center;">
+          <button class="btn-tap" id="btn-tap">TAP</button>
         </div>
       </div>
     </div>
@@ -600,12 +615,7 @@
       </div>
     </div>
 
-    <div class="section">
-      <div class="controls">
-        <button class="btn-start" id="btn-start">&#9654;&ensp;Iniciar</button>
-        <button class="btn-tap" id="btn-tap">TAP</button>
-      </div>
-    </div>
+
   </div>
 
   <script>
@@ -628,14 +638,15 @@
     const timerCountdown = document.getElementById('timer-countdown');
     const timerBar       = document.getElementById('timer-bar');
 
-    const bpmDisplay = document.getElementById('bpm-display');
-    const bpmSlider  = document.getElementById('bpm-slider');
-    const btnMinus   = document.getElementById('btn-minus');
-    const btnPlus    = document.getElementById('btn-plus');
-    const btnStart   = document.getElementById('btn-start');
-    const btnTap     = document.getElementById('btn-tap');
-    const beatsEl    = document.getElementById('beats');
-    const pendulum   = document.getElementById('pendulum');
+    const bpmDisplay    = document.getElementById('bpm-display');
+    const bpmSlider     = document.getElementById('bpm-slider');
+    const btnMinus      = document.getElementById('btn-minus');
+    const btnPlus       = document.getElementById('btn-plus');
+    const btnStart      = document.getElementById('btn-start');
+    const btnTap        = document.getElementById('btn-tap');
+    const beatsEl       = document.getElementById('beats');
+    const pendulum      = document.getElementById('pendulum');
+    const pendulumWrap  = document.getElementById('pendulum-wrap');
     const timeSigEl  = document.getElementById('ts-display');
     const tsNumEl    = document.getElementById('ts-num');
     const tsDenEl    = document.getElementById('ts-den');
@@ -907,8 +918,7 @@
       randPattern = []; randPatternIdx = 0;
       nextBeatTime = audioCtx.currentTime + 0.05;
       timerID = setInterval(schedule, 25);
-      btnStart.textContent = '⏹ Detener';
-      btnStart.classList.add('running');
+      pendulumWrap.classList.add('is-running');
       startCountdown();
     }
 
@@ -918,14 +928,14 @@
       beatsEl.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
       pendulum.style.transition = 'transform 0.6s cubic-bezier(0.34,1.56,0.64,1)';
       pendulum.style.transform  = 'rotate(0deg)';
-      btnStart.textContent = '▶ Iniciar';
-      btnStart.classList.remove('running');
+      pendulumWrap.classList.remove('is-running');
       stopCountdown();
     }
 
     function restart() { stop(); start(); }
 
-    btnStart.addEventListener('click', () => running ? stop() : start());
+    btnStart.addEventListener('click', e => { e.stopPropagation(); running ? stop() : start(); });
+    pendulumWrap.addEventListener('click', () => { if (running) stop(); });
     btnMinus.addEventListener('click', () => setBPM(bpm - 1));
     btnPlus.addEventListener('click',  () => setBPM(bpm + 1));
     bpmSlider.addEventListener('input', () => setBPM(+bpmSlider.value));
