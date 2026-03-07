@@ -167,27 +167,127 @@
     }
 
     /* ═══════════════════════════════════════
-       CATEGORY TABS
+       ACCORDION — category selection
     ═══════════════════════════════════════ */
-    .cat-tabs-wrap { margin-bottom: .75rem; }
-    .cat-tabs {
-      display: flex; gap: .3rem;
-      overflow-x: auto; scrollbar-width: none; flex-wrap: wrap;
+    .acc-list { display: flex; flex-direction: column; }
+    .acc-section { border-bottom: 1px solid var(--border); }
+    .acc-section:last-child { border-bottom: none; }
+
+    .acc-head {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .58rem .6rem .58rem .7rem;
+      cursor: pointer; border: none; background: transparent;
+      width: 100%; font-family: inherit; text-align: left;
+      transition: background .15s; outline: none;
     }
-    .cat-tabs::-webkit-scrollbar { display: none; }
-    .cat-tab {
-      flex-shrink: 0; padding: .28rem .8rem;
-      border-radius: 2rem; border: 1px solid var(--border2);
-      background: transparent; color: var(--muted);
-      font-family: inherit; font-size: .73rem; font-weight: 500;
-      cursor: pointer; transition: all .15s; white-space: nowrap;
+    .acc-head:hover { background: rgba(255,255,255,.025); }
+    .acc-head.open   { background: rgba(56,189,248,.04); }
+    .acc-head.has-active { background: rgba(56,189,248,.05); }
+
+    .acc-name {
+      flex: 1; min-width: 0;
+      font-size: .73rem; font-weight: 600; color: var(--text2);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.2; transition: color .15s;
     }
-    .cat-tab.active { background: var(--accent); color: #061422; border-color: var(--accent); font-weight: 700; }
-    .cat-tab:hover:not(.active) { color: var(--text); border-color: rgba(56,189,248,.4); background: rgba(56,189,248,.06); }
+    .acc-head.open .acc-name,
+    .acc-head.has-active .acc-name { color: var(--text); }
+
+    .acc-prog-wrap {
+      flex-shrink: 0; display: flex; align-items: center; gap: .3rem;
+    }
+    .acc-badge {
+      font-size: .6rem; font-weight: 700; color: var(--muted);
+      min-width: 22px; text-align: center; letter-spacing: .01em;
+      transition: color .15s;
+    }
+    .acc-head.open .acc-badge,
+    .acc-head.has-active .acc-badge { color: var(--accent); }
+
+    .acc-chevron {
+      width: 13px; height: 13px; color: var(--border2); flex-shrink: 0;
+      transition: transform .22s ease, color .15s;
+    }
+    .acc-head.open .acc-chevron,
+    .acc-head.has-active .acc-chevron { color: var(--accent); }
+    .acc-head.open .acc-chevron { transform: rotate(90deg); }
+
+    /* Thin progress bar under each category header */
+    .acc-prog-bar {
+      height: 2px; background: rgba(56,189,248,.15); flex-grow: 1;
+      border-radius: 1px; overflow: hidden; max-width: 36px;
+    }
+    .acc-prog-fill {
+      height: 100%; background: var(--accent);
+      border-radius: 1px; transition: width .3s;
+    }
+
+    /* Accordion body */
+    .acc-body { overflow: hidden; max-height: 0; transition: max-height .28s ease; }
+    .acc-body.open { max-height: 700px; }
+    .acc-body-inner { padding: .15rem .35rem .45rem; }
 
     /* ═══════════════════════════════════════
-       RUDIMENT CHIPS
+       RUDIMENT ROWS (accordion + tier + favs)
     ═══════════════════════════════════════ */
+    .rud-list { display: flex; flex-direction: column; gap: .15rem; }
+    .rud-row {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .44rem .6rem .44rem .7rem;
+      border-radius: .45rem;
+      border: 1px solid transparent;
+      box-shadow: inset 2px 0 0 transparent;
+      background: transparent;
+      font-family: inherit; cursor: pointer; transition: all .14s;
+      text-align: left; width: 100%;
+    }
+    .rud-row:hover:not(.active) { background: rgba(255,255,255,.04); }
+    .rud-row.active {
+      background: rgba(56,189,248,.08);
+      box-shadow: inset 2px 0 0 var(--accent);
+      border-color: rgba(56,189,248,.18);
+    }
+    .rud-row-lvl {
+      width: 7px; height: 7px; border-radius: 50%;
+      border: 1.5px solid var(--border2); flex-shrink: 0;
+      transition: background .2s, border-color .2s;
+    }
+    .rud-row-name {
+      flex: 1; min-width: 0;
+      font-size: .76rem; font-weight: 500; color: var(--text2);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      transition: color .14s;
+    }
+    .rud-row.active .rud-row-name { color: var(--accent); font-weight: 600; }
+    .rud-row:hover:not(.active) .rud-row-name { color: var(--text); }
+
+
+    /* ═══════════════════════════════════════
+       TIER BLOCKS
+    ═══════════════════════════════════════ */
+    .tier-block { margin-bottom: 1.25rem; }
+    .tier-header {
+      display: flex; align-items: center; gap: .55rem;
+      padding: .5rem .65rem; margin-bottom: .3rem;
+      border-radius: .6rem; background: var(--card2);
+      border: 1px solid var(--border);
+    }
+    .tier-header-icon { font-size: .9rem; flex-shrink: 0; }
+    .tier-header-info { flex: 1; min-width: 0; }
+    .tier-header-name {
+      font-size: .72rem; font-weight: 700; color: var(--text);
+      line-height: 1.2;
+    }
+    .tier-header-sub {
+      font-size: .6rem; color: var(--muted); font-weight: 500;
+      line-height: 1.3;
+    }
+    .tier-header-count {
+      font-size: .62rem; font-weight: 700; color: var(--accent);
+      background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.2);
+      border-radius: 2rem; padding: .1rem .4rem; flex-shrink: 0;
+    }
+    /* ─── legacy chip compatibility ─── */
     .rud-chips { display: flex; gap: .28rem; flex-wrap: wrap; }
     .rud-chip {
       padding: .28rem .7rem; border-radius: .45rem;
@@ -204,10 +304,7 @@
     .rud-chip:hover:not(.active) { color: var(--text); border-color: var(--border2); background: var(--card2); }
     .chip-lvl { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 
-    /* ═══════════════════════════════════════
-       TIER BLOCKS
-    ═══════════════════════════════════════ */
-    .tier-block { margin-bottom: 1.5rem; }
+    /* old tier title kept for mobile compat */
     .tier-title {
       font-size: .6rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: .15em; color: var(--muted);
@@ -556,8 +653,7 @@
       <div class="fav-start-row" id="favStartRow"></div>
       <div class="sidebar-list" id="sidebarList">
         <div id="categPanel">
-          <div class="cat-tabs-wrap"><div class="cat-tabs" id="catTabs"></div></div>
-          <div class="rud-chips" id="rudChipsCateg"></div>
+          <div id="categAccordion" class="acc-list"></div>
         </div>
         <div id="tierPanel"  style="display:none"><div id="tierBlocks"></div></div>
         <div id="favsPanel"  style="display:none"></div>
@@ -662,9 +758,9 @@ function buildFavsPanel(){
     return;
   }
   el.innerHTML='';
-  const wrap=document.createElement('div');wrap.className='rud-chips';
-  favRuds.forEach(r=>wrap.appendChild(makeChip(r)));
-  el.appendChild(wrap);
+  const list=document.createElement('div');list.className='rud-list';
+  favRuds.forEach(r=>list.appendChild(makeRudRow(r)));
+  el.appendChild(list);
 }
 function buildFavStartRow(){
   const row=document.getElementById('favStartRow');
@@ -874,33 +970,116 @@ function renderSticking(rud){
 
 let currentRud=RUDIMENTS[0], currentCat=RUDIMENTS[0].cat, currentView='categ';
 const categories=[...new Set(RUDIMENTS.map(r=>r.cat))];
-const tierNames={1:'Tier 1 — Fundamentos',2:'Tier 2 — Construcción',3:'Tier 3 — Desarrollo',4:'Tier 4 — Maestría'};
+const tierNames={1:'Fundamentos',2:'Construcción',3:'Desarrollo',4:'Maestría'};
+const tierSub={1:'Los 6 básicos esenciales',2:'Combinaciones y rolls',3:'Variaciones avanzadas',4:'Técnica de maestro'};
+const tierIcons={1:'🥁',2:'⚙️',3:'🔥',4:'💎'};
+const catIcons={
+  'Rolls de un golpe':'☝️','Rolls de dos golpes':'✌️','Rolls de tres golpes':'🔄',
+  'Rolls de buzz':'🌀','Diddles':'⚡','Flams':'🎯','Drags':'🌊'
+};
 const isMobile=()=>window.innerWidth<=700;
 
-function buildCatTabs(){
-  const el=document.getElementById('catTabs');el.innerHTML='';
+/* ─── miniatura R/L del patrón ─── */
+function patternNotes(rud){
+  const notes=[];
+  rud.pattern.forEach((group,gi)=>{
+    if(gi>0)notes.push('sep');
+    group.forEach(n=>notes.push(n.h));
+    if(notes.length>10)return;
+  });
+  return notes.slice(0,14);
+}
+function renderMiniPattern(rud){
+  const notes=patternNotes(rud);
+  return notes.map(n=>n==='sep'
+    ?`<span class="rud-row-sep"></span>`
+    :`<span class="rud-row-note ${n}"></span>`
+  ).join('');
+}
+
+/* ─── ACCORDION — category navigation ─── */
+function buildCategAccordion(){
+  const el=document.getElementById('categAccordion');if(!el)return;
+  el.innerHTML='';
   categories.forEach(cat=>{
-    const btn=document.createElement('button');
-    btn.className='cat-tab'+(cat===currentCat?' active':'');
-    btn.textContent=cat;
-    btn.onclick=()=>{currentCat=cat;buildCatTabs();buildChipsCateg();const f=RUDIMENTS.find(r=>r.cat===cat);if(f)selectRud(f);};
-    el.appendChild(btn);
+    const ruds=RUDIMENTS.filter(r=>r.cat===cat);
+    const done=ruds.filter(r=>rudProgress[r.id]).length;
+    const isOpen=cat===currentCat;
+    const hasActive=ruds.some(r=>r===currentRud);
+    const pct=ruds.length?Math.round(done/ruds.length*100):0;
+
+    const section=document.createElement('div');
+    section.className='acc-section';section.dataset.cat=cat;
+
+    const head=document.createElement('button');
+    head.className='acc-head'+(isOpen?' open':'')+(hasActive?' has-active':'');
+    head.innerHTML=`<span class="acc-name">${cat}</span>
+      <div class="acc-prog-wrap">
+        <span class="acc-badge">${done}/${ruds.length}</span>
+        <div class="acc-prog-bar"><div class="acc-prog-fill" style="width:${pct}%"></div></div>
+      </div>
+      <svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
+
+    const body=document.createElement('div');
+    body.className='acc-body'+(isOpen?' open':'');
+    const inner=document.createElement('div');inner.className='acc-body-inner rud-list';
+    ruds.forEach(r=>inner.appendChild(makeRudRow(r)));
+    body.appendChild(inner);
+
+    head.onclick=()=>toggleAccSection(section,cat);
+    section.appendChild(head);section.appendChild(body);
+    el.appendChild(section);
   });
 }
-function buildChipsCateg(){
-  const el=document.getElementById('rudChipsCateg');el.innerHTML='';
-  RUDIMENTS.filter(r=>r.cat===currentCat).forEach(r=>el.appendChild(makeChip(r)));
+function toggleAccSection(section,cat){
+  const body=section.querySelector('.acc-body');
+  const head=section.querySelector('.acc-head');
+  const opening=!body.classList.contains('open');
+  // collapse all
+  document.querySelectorAll('#categAccordion .acc-body').forEach(b=>b.classList.remove('open'));
+  document.querySelectorAll('#categAccordion .acc-head').forEach(h=>h.classList.remove('open'));
+  if(opening){
+    body.classList.add('open');head.classList.add('open');
+    currentCat=cat;
+    const ruds=RUDIMENTS.filter(r=>r.cat===cat);
+    if(ruds.length&&!ruds.includes(currentRud))selectRud(ruds[0]);
+  }
 }
+
+/* Legacy stubs — kept so nothing else breaks */
+function buildCatCards(){}
+function showRudList(){}
+function showCatCards(){}
+function buildRudList(){}
+function buildCatTabs(){}
+function buildChipsCateg(){}
+
 function buildTierBlocks(){
   const el=document.getElementById('tierBlocks');el.innerHTML='';
   [1,2,3,4].forEach(t=>{
+    const ruds=RUDIMENTS.filter(r=>r.tier===t);
+    const done=ruds.filter(r=>rudProgress[r.id]).length;
     const block=document.createElement('div');block.className='tier-block';
-    const title=document.createElement('div');title.className='tier-title';
-    title.innerHTML=`<span class="tier-num">${t}</span>${tierNames[t]}`;
-    const chips=document.createElement('div');chips.className='rud-chips';
-    RUDIMENTS.filter(r=>r.tier===t).forEach(r=>chips.appendChild(makeChip(r)));
-    block.appendChild(title);block.appendChild(chips);el.appendChild(block);
+    const header=document.createElement('div');header.className='tier-header';
+    header.innerHTML=`<span class="tier-header-icon">${tierIcons[t]}</span>
+      <div class="tier-header-info">
+        <div class="tier-header-name">Tier ${t} — ${tierNames[t]}</div>
+        <div class="tier-header-sub">${tierSub[t]}</div>
+      </div>
+      <span class="tier-header-count">${done}/${ruds.length}</span>`;
+    const list=document.createElement('div');list.className='rud-list';
+    ruds.forEach(r=>list.appendChild(makeRudRow(r)));
+    block.appendChild(header);block.appendChild(list);el.appendChild(block);
   });
+}
+function makeRudRow(rud){
+  const lvl=rudProgress[rud.id];
+  const row=document.createElement('button');
+  row.className='rud-row'+(rud===currentRud?' active':'');
+  row.innerHTML=`<span class="rud-row-lvl" style="${lvl?'background:'+levelColor(lvl)+';border-color:'+levelColor(lvl):''};"></span>
+    <span class="rud-row-name">${rud.name}</span>`;
+  row.onclick=()=>selectRud(rud);
+  return row;
 }
 function makeChip(rud){
   const btn=document.createElement('button');
@@ -917,24 +1096,26 @@ function buildMobList(){
   if(!el)return;
   el.innerHTML='';
   if(currentView==='categ'){
-    /* horizontal scrollable chips of current category + category pill selector */
-    const catWrap=document.createElement('div');catWrap.style.cssText='display:flex;gap:.3rem;overflow-x:auto;scrollbar-width:none;padding-bottom:.4rem;margin-bottom:.5rem;';
+    /* category emoji pills */
+    const catWrap=document.createElement('div');
+    catWrap.style.cssText='display:flex;gap:.3rem;overflow-x:auto;scrollbar-width:none;padding-bottom:.4rem;margin-bottom:.5rem;';
     categories.forEach(cat=>{
       const btn=document.createElement('button');
-      btn.className='cat-tab'+(cat===currentCat?' active':'');
-      btn.textContent=cat;
-      btn.onclick=()=>{currentCat=cat;buildCatTabs();buildChipsCateg();buildMobList();const f=RUDIMENTS.find(r=>r.cat===cat);if(f)selectRud(f);};
+      btn.style.cssText='flex-shrink:0;padding:.25rem .7rem;border-radius:2rem;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:inherit;font-size:.72rem;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;';
+      btn.textContent=(catIcons[cat]||'🎵')+' '+cat;
+      if(cat===currentCat){btn.style.background='var(--accent)';btn.style.color='#061422';btn.style.borderColor='var(--accent)';btn.style.fontWeight='700';}
+      btn.onclick=()=>{currentCat=cat;buildMobList();const f=RUDIMENTS.find(r=>r.cat===cat);if(f&&f!==currentRud)selectRud(f);};
       catWrap.appendChild(btn);
     });
     el.appendChild(catWrap);
-    const chips=document.createElement('div');chips.className='rud-chips';chips.style.flexWrap='nowrap';
-    RUDIMENTS.filter(r=>r.cat===currentCat).forEach(r=>chips.appendChild(makeChip(r)));
-    el.appendChild(chips);
+    const list=document.createElement('div');list.className='rud-chips';list.style.flexWrap='nowrap';
+    RUDIMENTS.filter(r=>r.cat===currentCat).forEach(r=>list.appendChild(makeChip(r)));
+    el.appendChild(list);
   } else if(currentView==='tier'){
     [1,2,3,4].forEach(t=>{
       const block=document.createElement('div');block.style.cssText='margin-bottom:.7rem;';
-      const title=document.createElement('div');title.className='tier-title';title.style.marginBottom='.4rem';
-      title.innerHTML=`<span class="tier-num" style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--accent)">${tierNames[t]}</span>`;
+      const title=document.createElement('div');title.style.cssText='display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem;font-size:.65rem;font-weight:700;color:var(--accent);';
+      title.textContent=tierIcons[t]+' Tier '+t+' — '+tierNames[t];
       const chips=document.createElement('div');chips.className='rud-chips';chips.style.flexWrap='nowrap';
       RUDIMENTS.filter(r=>r.tier===t).forEach(r=>chips.appendChild(makeChip(r)));
       block.appendChild(title);block.appendChild(chips);el.appendChild(block);
@@ -953,11 +1134,9 @@ function buildMobList(){
 
 function setView(v){
   currentView=v;
-  /* desktop sidebar tabs */
   ['vtCateg','vtTier','vtFavs'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.classList.toggle('active',id==='vtCateg'&&v==='categ'||id==='vtTier'&&v==='tier'||id==='vtFavs'&&v==='favs');
   });
-  /* mobile tabs */
   ['mtCateg','mtTier','mtFavs'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.classList.toggle('active',id==='mtCateg'&&v==='categ'||id==='mtTier'&&v==='tier'||id==='mtFavs'&&v==='favs');
   });
@@ -967,7 +1146,7 @@ function setView(v){
   document.getElementById('appLayout').classList.toggle('view-favs',v==='favs');
   if(v==='tier')buildTierBlocks();
   else if(v==='favs'){buildFavsPanel();updateFavArrows();}
-  else{buildCatTabs();buildChipsCateg();}
+  else{buildCategAccordion();}
   buildMobList();
 }
 function selectRud(rud, dir){
@@ -980,7 +1159,6 @@ function selectRud(rud, dir){
     return;
   }
   _applyRud(rud);
-  /* on mobile: scroll to card */
   if(isMobile())card.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function _applyRud(rud){
@@ -995,8 +1173,9 @@ function _applyRud(rud){
   document.getElementById('staffWrap').innerHTML=vfSlug
     ?`<div class="vf-img-wrap"><img src="${VF_IMG_BASE}${vfSlug}.webp" alt="${rud.name}" loading="lazy"/></div>`
     :renderStaff(rud);
-  if(currentView==='categ'){buildCatTabs();buildChipsCateg();}
-  else if(currentView==='tier')buildTierBlocks();
+  if(currentView==='categ'){
+    buildCategAccordion();
+  } else if(currentView==='tier')buildTierBlocks();
   else{buildFavsPanel();updateFavArrows();}
   buildMobList();
 }
@@ -1017,7 +1196,7 @@ function buildLevelStrip(rud){
   });
 }
 function refreshChips(){
-  if(currentView==='categ')buildChipsCateg();
+  if(currentView==='categ')buildCategAccordion();
   else if(currentView==='tier')buildTierBlocks();
   else buildFavsPanel();
   buildMobList();
@@ -1119,7 +1298,7 @@ function apUpdateProgress(){
   t.textContent=`${Math.floor(rem/60)}:${String(Math.floor(rem%60)).padStart(2,'0')}`;
 }
 
-buildCatTabs();buildChipsCateg();selectRud(RUDIMENTS[0]);updateProgBanner();buildFavStartRow();buildMobList();
+buildCategAccordion();selectRud(RUDIMENTS[0]);updateProgBanner();buildFavStartRow();buildMobList();
 document.getElementById('favBtn').onclick=toggleFav;
 </script>
 <script>
