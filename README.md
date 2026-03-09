@@ -28,6 +28,17 @@ No hay backend de aplicación: Nginx sirve estáticos directamente desde `/var/w
 │           └── transitions.js
 ├── rudimentos/
 │   └── index.html
+├── rudimentos/
+│   ├── index.html
+│   ├── css/styles.css
+│   └── js/
+│       ├── app.js
+│       ├── data.js
+│       ├── state.js
+│       ├── staff.js
+│       ├── audio.js
+│       ├── sidebar.js
+│       └── detail.js
 └── stick-control/
     └── index.html
 ```
@@ -128,7 +139,93 @@ Cada módulo escucha los eventos del DOM que le interesan y actualiza su trozo d
 
 ### 🥁 Rudimentos (`/rudimentos/`)
 
-> *Documentación pendiente.*
+Referencia interactiva de los 40 rudimentos de percusión del PAS (Percussive Arts Society). Cada rudimento tiene notación, sticking, logros por velocidad y audio de ejemplo de Vic Firth.
+
+#### Arquitectura
+
+Misma filosofía que el metrónomo: ES Modules nativos, sin bundler. La comunicación entre módulos que formarían dependencias circulares se resuelve con **dependency injection** (una función se registra en el módulo que la necesita en tiempo de arranque, desde `app.js`) y con un `CustomEvent` del DOM para el caso concreto del avance automático en la playlist de favoritos.
+
+```
+app.js          ← entry point: inyecta dependencias, hace el render inicial, registra listeners
+│
+├── data.js     ← arrays y mapas estáticos (RUDIMENTS, LEVELS, VF_IMG, VF_STEMS…)
+├── state.js    ← estado mutable (currentRud, currentView, rudProgress, rudFavs)
+├── staff.js    ← renderizador SVG de pentagramas + HTML de sticking
+├── audio.js    ← reproductor de audio (Vic Firth MP3s externos)
+├── sidebar.js  ← acordeón de categorías, bloques de tier, panel de favoritos, sheet móvil
+└── detail.js   ← tarjeta de detalle, logros, progreso, navegación de favoritos
+```
+
+#### `data.js` — datos puros
+
+Toda la información estática del dominio. No importa nada y no toca el DOM:
+
+- **`RUDIMENTS`** — array de 40 objetos `{ id, tier, cat, name, desc, pattern }`. La propiedad `pattern` es un array de grupos de golpes, donde cada golpe es `{ h:'R'|'L', a?:true, g?:'r'|'l', d?:'r'|'l', b?:true }` (*hand*, *accent*, *grace*, *drag*, *buzz*).
+- **`LEVELS`** — 5 tiers de logros: Bronce 60 BPM → Diamante 160 BPM.
+- **`VF_IMG`** / **`VF_STEMS`** — mapas de `id → slug` para construir URLs a las imágenes `.webp` locales y a los MP3 de Vic Firth en un servidor externo.
+- Helpers de construcción de patrones: `RR()`, `LL()`, `RA()`, `LA()` (atajo para crear objetos de nota con los campos más comunes).
+
+#### `state.js`
+
+Estado mutable compartido:
+
+```js
+export const state = {
+  currentRud:  null,      // rudimento seleccionado
+  currentCat:  '',        // categoría acordeón abierta
+  currentView: 'categ',   // 'categ' | 'tier' | 'favs'
+  mobOpenCat:  '',        // categoría expandida en el sheet móvil
+};
+```
+
+El progreso (`rudProgress`) y los favoritos (`rudFavs`) se persisten en `localStorage` como JSON. `rudFavs` vive como un `Set<id>` en memoria para que `has()` y `delete()` sean O(1).
+
+#### `staff.js` — renderizador de notación
+
+`renderStaff(rud)` genera un SVG inline a partir del array `pattern` del rudimento. Calcula posiciones X acumulando el ancho de cada nota más el espacio extra para las grace notes y drags, dibuja barras de corchea por grupo (con bracket de tresillo si el grupo tiene 3 o 6 notas), separa grupos con barlines y colorea cada cabeza de nota de rojo (R) o azul (L) para facilitar la lectura.
+
+`renderSticking(rud)` produce un fragmento HTML con los textos `R`/`L` en color, prefijados por grace notes en superíndice cuando corresponde.
+
+En la práctica, si existe una imagen `.webp` para el rudimento en `VF_IMG`, se usa la imagen en vez del SVG generado (mayor fidelidad visual). El SVG es el fallback para cualquier rudimento sin imagen.
+
+#### `audio.js` — reproductor Vic Firth
+
+Gestiona un único elemento `<Audio>` que se recrea en cada cambio de rudimento. El audio viene de `https://ae.vicfirth.com/wp-content/uploads/` y no está alojado localmente.
+
+Cada rudimento tiene hasta 6 pistas (tracks): O-C-O (open-close-open), Bronce, Plata, Oro, Platino, Diamante. Cuando una pista termina, el reproductor avanza automáticamente a la siguiente. Cuando termina la última pista y el usuario está en la vista de favoritos, se despacha el evento `audio:ended-in-favs` en `document` — `detail.js` lo escucha y avanza al siguiente rudimento de la playlist. Esto desacopla `audio.js` de `detail.js` sin importación circular.
+
+#### `sidebar.js` — todos los paneles de navegación
+
+Gestiona tres vistas del sidebar (escritorio) y del sheet deslizante (móvil):
+
+- **Categoría**: acordeón animado con `grid-template-rows: 0fr → 1fr`. Cada sección muestra la categoría, el número de rudimentos y una mini barra de progreso. Al abrir una sección, si el rudimento activo no pertenece a esa categoría, se selecciona automáticamente el primero de la nueva.
+- **Nivel (Tier)**: tres bloques con los rudimentos agrupados por tier 1–4.
+- **Favoritos**: lista plana de rudimentos marcados, con botones para comenzar la playlist de audio desde un nivel específico.
+
+El sheet móvil se muestra u oculta con una transición CSS (`translateY(100%) → none`). Cuando el usuario cambia de vista mientras el sheet está abierto, el contenido se anima con un slide lateral.
+
+`sidebar.js` necesita llamar a `selectRud()` (que vive en `detail.js`), pero `detail.js` importa `sidebar.js`. Para cortar la dependencia circular, `sidebar.js` expone `registerSelectRud(fn)` y `app.js` le inyecta la función al arrancar.
+
+#### `detail.js` — tarjeta de detalle y logros
+
+`selectRud(rud, dir)` es el punto central de la app: actualiza el estado, re-renderiza la tarjeta de detalle y sincroniza todos los paneles del sidebar. Si se pasa `dir` (−1 o +1), añade una animación de slide a la tarjeta antes de hacer el swap de contenido.
+
+`buildLevelStrip(rud)` construye las 5 tarjetas de logro. Al pulsar una, alterna el nivel guardado en `rudProgress` y, si es un logro nuevo, dispara la animación `unlock-anim`. El progreso se guarda en `localStorage` inmediatamente.
+
+`updateProgBanner()` recorre todos los rudimentos y recalcula cuántos cumplen cada nivel, actualizando los contadores y las barras de la barra superior.
+
+#### `app.js` — arranque
+
+1. **Dependency injection**: llama a `registerSelectRud(selectRud)` para que `sidebar.js` pueda invocar `selectRud` sin importarla directamente.
+2. **Render inicial**: construye el acordeón, selecciona el primer rudimento, actualiza el banner de progreso y calcula la posición del indicador deslizante de los tabs.
+3. **Event wiring**: conecta todos los botones del HTML (tabs, bottom nav, fav button, flechas de navegación, cerrar sheet) a sus funciones JS.
+4. **Transiciones de página**: mismo patrón fade-in/fade-out que el resto de apps.
+
+#### Layout
+
+En escritorio (> 700 px): columna izquierda fija de 268 px (sidebar `position: sticky`) + área de detalle que ocupa el resto con `flex: 1`.
+
+En móvil (≤ 700 px): el sidebar se oculta con `display: none`. Aparece una barra de navegación inferior fija con tres botones que abren el sheet deslizante. La tarjeta de detalle ocupa toda la pantalla con padding inferior para que el contenido no quede tapado por la barra.
 
 ---
 
