@@ -1248,16 +1248,29 @@ function buildMobSheet(){
         <svg class="mob-scat-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
       const body=document.createElement('div');
       body.className='mob-scat-body';
-      body.style.display=isOpen?'block':'none';
+      body.style.overflow='hidden';
+      if(isOpen){body.style.display='block';}else{body.style.display='none';body.style.height='0';}
       const list=document.createElement('div');list.className='rud-list';
       ruds.forEach(r=>list.appendChild(makeMobRudRow(r)));
       body.appendChild(list);
       head.onclick=()=>{
         const wasOpen=body.style.display==='block';
-        el.querySelectorAll('.mob-scat-body').forEach(b=>{b.style.display='none';});
+        // collapse all
+        el.querySelectorAll('.mob-scat-body').forEach(b=>{
+          if(b.style.display==='block'){
+            const h=b.scrollHeight;
+            b.animate([{height:h+'px'},{height:'0px'}],{duration:260,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'})
+              .onfinish=()=>{b.style.display='none';b.style.height='';};
+          }
+        });
         el.querySelectorAll('.mob-scat-head').forEach(h=>h.classList.remove('open'));
-        if(!wasOpen){body.style.display='block';head.classList.add('open');mobOpenCat=cat;}
-        else{mobOpenCat=null;}
+        if(!wasOpen){
+          body.style.display='block';
+          const target=body.scrollHeight;
+          body.animate([{height:'0px'},{height:target+'px'}],{duration:300,easing:'cubic-bezier(0,0,.2,1)',fill:'forwards'})
+            .onfinish=()=>{body.style.height='';};
+          head.classList.add('open');mobOpenCat=cat;
+        } else{mobOpenCat=null;}
       };
       sec.appendChild(head);sec.appendChild(body);el.appendChild(sec);
     });
@@ -1320,9 +1333,27 @@ function mobNavClick(v){
   if(!isMobile()){setView(v);return;}
   const sheetOpen=document.getElementById('mobSheet').classList.contains('open');
   const sameView=v===currentView;
+  const tabOrder={categ:0,tier:1,favs:2};
+  const dir=tabOrder[v]>tabOrder[currentView]?1:-1; // 1=going right, -1=going left
   setView(v);
-  if(sheetOpen&&sameView){closeMobSheet();}
-  else{mobOpenCat=null;buildMobSheet();openMobSheet();}
+  if(sheetOpen&&sameView){ closeMobSheet(); }
+  else if(sheetOpen&&!sameView){
+    const body=document.getElementById('mobSheetBody');
+    const outX=dir<0?'40px':'-40px';
+    const inX=dir<0?'-40px':'40px';
+    body.animate(
+      [{opacity:1,transform:'translateX(0)'},{opacity:0,transform:'translateX('+outX+')'}],
+      {duration:160,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
+    ).onfinish=()=>{
+      mobOpenCat=null; buildMobSheet();
+      body.animate(
+        [{opacity:0,transform:'translateX('+inX+')'},{opacity:1,transform:'none'}],
+        {duration:220,easing:'cubic-bezier(0,0,.2,1)',fill:'forwards'}
+      ).onfinish=()=>{ body.style.cssText=''; };
+    };
+  } else {
+    mobOpenCat=null; buildMobSheet(); openMobSheet();
+  }
 }
 
 function setView(v){
