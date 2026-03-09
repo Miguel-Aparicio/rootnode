@@ -1,4 +1,4 @@
-# migueguay.ddns.net — Raspberry Pi 5
+# rootnode.ddns.net — Raspberry Pi 5
 
 Proyecto personal corriendo en una Raspberry Pi 5 con Nginx y Let's Encrypt. La idea es ir construyendo mini-apps web sobre temas que me interesen, todas en vanilla HTML/CSS/JS — sin frameworks, sin bundler, sin build step. Lo que hay en disco es lo que recibe el navegador.
 
