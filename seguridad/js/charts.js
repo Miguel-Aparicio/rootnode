@@ -354,10 +354,14 @@ function initWorldGlobe(container) {
     .arcCircularResolution(8)
     .arcColor(route => route.color)
     .arcStroke(route => route.width)
-    .arcDashLength(route => route.mode === 'pulse' ? 0.042 : 1)
-    .arcDashGap(route => route.mode === 'pulse' ? 0.958 : 0)
-    .arcDashInitialGap(route => route.mode === 'pulse' ? (route.pulseOffset ?? 0) : 0)
-    .arcDashAnimateTime(route => route.mode === 'pulse' ? 5200 : 0)
+    .arcDashLength(route => route.mode === 'pulse'
+      ? 0.042
+      : (String(route.mode || '').startsWith('live-burst') ? (route.dashLength ?? 0.06) : 1))
+    .arcDashGap(route => route.mode === 'pulse'
+      ? 0.958
+      : (String(route.mode || '').startsWith('live-burst') ? (route.dashGap ?? 0.94) : 0))
+    .arcDashInitialGap(route => (route.mode === 'pulse' || String(route.mode || '').startsWith('live-burst')) ? (route.pulseOffset ?? 0) : 0)
+    .arcDashAnimateTime(route => route.mode === 'pulse' ? 5200 : (String(route.mode || '').startsWith('live-burst') ? 650 : 0))
     .arcLabel(route => route.label)
     .pointLat(point => point.lat)
     .pointLng(point => point.lon)
@@ -714,6 +718,59 @@ function updateWorldGlobe(countries, liveAttackBurst = 0) {
 
   if (globeLivePulseTimer) clearTimeout(globeLivePulseTimer);
   globeLivePulseTimer = null;
+
+  const burstCount = clamp(Math.round(Number(liveAttackBurst) || 0), 0, 18);
+  if (burstCount > 0 && globeStaticRoutes.length > 0) {
+    const totalWeight = globeStaticRoutes.reduce((sum, route) => sum + (route.count || 0), 0) || 1;
+    const liveRoutes = [];
+    for (let i = 0; i < burstCount; i += 1) {
+      const pick = pickWeightedRoute(globeStaticRoutes, totalWeight);
+      if (!pick) continue;
+
+      const headOffset = (i / Math.max(burstCount, 1)) % 1;
+      const trail1Offset = ((headOffset - 0.022) % 1 + 1) % 1;
+      const trail2Offset = ((headOffset - 0.046) % 1 + 1) % 1;
+
+      liveRoutes.push(
+        {
+          ...pick,
+          mode: 'live-burst-head',
+          color: 'rgba(255, 250, 245, 0.98)',
+          width: clamp(pick.width * 0.36, 0.09, 0.22),
+          altitude: clamp((pick.altitude ?? 0.12) + 0.016, 0.08, 0.34),
+          pulseOffset: headOffset,
+          dashLength: 0.06,
+          dashGap: 0.94,
+        },
+        {
+          ...pick,
+          mode: 'live-burst-trail-1',
+          color: 'rgba(255, 214, 214, 0.62)',
+          width: clamp(pick.width * 0.28, 0.08, 0.19),
+          altitude: clamp((pick.altitude ?? 0.12) + 0.014, 0.08, 0.34),
+          pulseOffset: trail1Offset,
+          dashLength: 0.1,
+          dashGap: 0.9,
+        },
+        {
+          ...pick,
+          mode: 'live-burst-trail-2',
+          color: 'rgba(255, 178, 178, 0.34)',
+          width: clamp(pick.width * 0.22, 0.07, 0.16),
+          altitude: clamp((pick.altitude ?? 0.12) + 0.012, 0.08, 0.34),
+          pulseOffset: trail2Offset,
+          dashLength: 0.14,
+          dashGap: 0.86,
+        }
+      );
+    }
+
+    applyGlobeArcs(liveRoutes);
+    globeLivePulseTimer = setTimeout(() => {
+      applyGlobeArcs([]);
+      globeLivePulseTimer = null;
+    }, 900);
+  }
 }
 
 function applyGlobeArcs(liveRoutes) {
@@ -740,12 +797,13 @@ function applyGlobeArcs(liveRoutes) {
       },
     ];
   });
-  const allRoutes = [...baseRoutes, ...pulseRoutes];
+  const burstRoutes = Array.isArray(liveRoutes) ? liveRoutes : [];
+  const allRoutes = [...baseRoutes, ...pulseRoutes, ...burstRoutes];
 
   globeInstance
     .arcsData(allRoutes)
     .arcAltitude(route => route.altitude ?? 0.12)
-    .arcDashAnimateTime(route => route.mode === 'pulse' ? 5200 : 0);
+    .arcDashAnimateTime(route => route.mode === 'pulse' ? 5200 : (route.mode === 'live-burst' ? 650 : 0));
 }
 
 function computeGlobeRouteAltitude(startLon, startLat, endLon, endLat, count, maxCount) {
