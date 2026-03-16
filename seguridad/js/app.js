@@ -23,6 +23,8 @@ let isLoading      = false;
 let activeApiUrl   = null;
 let lastFailed24h  = null;
 let currentLiveAttackBurst = 0;
+let lastEventTs    = null;
+let f2bCountdownTimer = null;
 
 // ─── Arranque ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -44,12 +46,13 @@ function configureDashboardLayout() {
 
   const preferredOrder = [
     '.card-events',
-    '.card-f2b',
+    '.card-countries',
+    '.card-vpn',
     '.card-worldmap',
-    '.card-usernames',
     '.card-net',
     '.card-heatmap',
-    '.card-countries',
+    '.card-usernames',
+    '.card-f2b',
   ];
 
   const preferredNodes = preferredOrder
@@ -210,11 +213,10 @@ function renderAll(d) {
   renderTopbar(d);
   renderStats(d);
   renderSSH(d.ssh);
+  computeLiveBurst(d.events);
   renderFail2ban(d.fail2ban);
   renderGauges(d.system);
-  renderFirewall(d.firewall);
   renderNetwork(d.network);
-  renderEnrichedAttackers(d.ssh?.enriched_attackers);
   renderCountries(d.ssh?.top_countries);
   renderVpnDonut(d.ssh);
   renderUsernames(d.ssh?.top_usernames);
@@ -252,16 +254,37 @@ function renderSSH(ssh) {
   if (!ssh) return;
   const count = ssh.failed_last_hour ?? 0;
   const failed24h = Number(ssh.failed_last_24h ?? 0);
+  const uniqueIps24h = Number(ssh.unique_ips_24h ?? 0);
+  const timeline = Array.isArray(ssh.timeline) ? ssh.timeline : [];
+  const values = timeline.map(item => Number(item?.count ?? item?.value ?? item) || 0);
+  const peakPerMinute = values.length ? Math.max(...values) : 0;
 
-  if (lastFailed24h == null) {
-    currentLiveAttackBurst = 0;
-  } else {
-    currentLiveAttackBurst = Math.max(0, failed24h - lastFailed24h);
-  }
   lastFailed24h = failed24h;
-
   setText('ssh-1h-badge', `${count} en 1h`);
+  setText('ssh-sum-1h', String(count));
+  setText('ssh-sum-24h', String(failed24h));
+  setText('ssh-sum-ips', String(uniqueIps24h));
+  setText('ssh-sum-peak', String(peakPerMinute));
   updateSSHChart(ssh.timeline);
+}
+
+function computeLiveBurst(events) {
+  if (!Array.isArray(events) || !events.length) {
+    currentLiveAttackBurst = 0;
+    return;
+  }
+  const newestTs = events[0]?.ts ? new Date(events[0].ts).getTime() : 0;
+  if (lastEventTs === null) {
+    currentLiveAttackBurst = 0;
+  } else if (newestTs > lastEventTs) {
+    currentLiveAttackBurst = events.filter(ev => {
+      const t = ev?.ts ? new Date(ev.ts).getTime() : 0;
+      return t > lastEventTs;
+    }).length;
+  } else {
+    currentLiveAttackBurst = 0;
+  }
+  if (newestTs > 0) lastEventTs = newestTs;
 }
 
 // ─── Fail2ban ─────────────────────────────────────────────────────────────────
@@ -280,41 +303,186 @@ function renderFail2ban(f2b) {
 
   const container = document.getElementById('f2b-jails');
   if (!container) return;
+  const listTitle = document.getElementById('f2b-list-title');
+  const entries = extractCurrentBannedEntries(f2b);
+  const currentTotal = Number(f2b.total_currently_banned ?? entries.length ?? 0);
 
-  const ips = extractCurrentBannedIps(f2b);
-  if (!ips.length) {
+  if (!entries.length) {
+    if (listTitle) listTitle.textContent = 'Listado de IPs baneadas (tiempo real)';
     container.innerHTML = '<div class="f2b-empty">No hay IPs baneadas activas o la API no aporta detalle.</div>';
+    if (f2bCountdownTimer) {
+      clearInterval(f2bCountdownTimer);
+      f2bCountdownTimer = null;
+    }
     return;
   }
 
-  container.innerHTML = ips.map((ip, index) => `
-    <div class="f2b-ip-row">
-      <span class="f2b-ip-rank">#${index + 1}</span>
-      <span class="f2b-ip mono">${esc(ip)}</span>
-    </div>
-  `).join('');
+  if (listTitle) {
+    const shown = entries.length;
+    const missing = Math.max(0, currentTotal - shown);
+    listTitle.textContent = missing > 0
+      ? `IPs baneadas activas: mostrando ${shown} de ${currentTotal} (faltan ${missing} sin detalle en API)`
+      : `IPs baneadas activas: mostrando ${shown} de ${currentTotal}`;
+  }
+
+  container.innerHTML = entries.map((entry, index) => {
+    const cssType = banTypeToCss(entry.banType);
+    const leftText = entry.secondsLeft != null
+      ? formatCountdown(entry.secondsLeft)
+      : 'N/D API';
+    const title = entry.secondsLeft != null
+      ? 'Cuenta atras estimada hasta desbaneo'
+      : 'La API no expone tiempo restante por IP';
+
+    return `
+      <div class="f2b-ip-row">
+        <span class="f2b-ip-rank">#${index + 1}</span>
+        <span class="f2b-ip mono">${esc(entry.ip)}</span>
+        <span class="f2b-ban-type ${cssType}">${esc(entry.banType)}</span>
+        <span class="f2b-left" data-seconds-left="${entry.secondsLeft != null ? Math.max(0, Math.floor(entry.secondsLeft)) : ''}" title="${esc(title)}">${esc(leftText)}</span>
+      </div>
+    `;
+  }).join('');
+
+  startF2bCountdownTicker();
 }
 
-function extractCurrentBannedIps(f2b) {
-  const ips = new Set();
-  const addFrom = value => {
-    if (!Array.isArray(value)) return;
-    value.forEach(entry => {
-      const ip = String(entry?.ip ?? entry ?? '').trim();
-      if (ip) ips.add(ip);
-    });
+function extractCurrentBannedEntries(f2b) {
+  const byIp = new Map();
+
+  const addEntry = (entryRaw, jailName = '') => {
+    const item = entryRaw && typeof entryRaw === 'object' ? entryRaw : { ip: entryRaw };
+    const ip = String(item.ip ?? item.address ?? item.host ?? '').trim();
+    if (!ip) return;
+
+    const jail = String(item.jail ?? jailName ?? '').trim();
+    const banType = String((item.ban_type ?? item.type ?? deriveBanTypeFromJail(jail)) || 'GENERAL').toUpperCase();
+    const secondsLeft = deriveSecondsLeft(item);
+
+    const prev = byIp.get(ip);
+    if (!prev || (prev.secondsLeft == null && secondsLeft != null)) {
+      byIp.set(ip, { ip, jail, banType, secondsLeft });
+    }
   };
 
-  addFrom(f2b.currently_banned_ips);
-  addFrom(f2b.banned_ips);
+  const addFromList = (value, jailName = '') => {
+    if (!Array.isArray(value)) return;
+    value.forEach(v => addEntry(v, jailName));
+  };
+
+  addFromList(f2b.currently_banned_ips);
+  addFromList(f2b.banned_ips);
+
   (f2b.jails || []).forEach(jail => {
-    addFrom(jail.currently_banned_ips);
-    addFrom(jail.current_banned_ips);
-    addFrom(jail.banned_ips);
-    addFrom(jail.ips);
+    const name = String(jail?.name || '').trim();
+    addFromList(jail?.currently_banned_ips, name);
+    addFromList(jail?.current_banned_ips, name);
+    addFromList(jail?.banned_ips, name);
+    addFromList(jail?.ips, name);
   });
 
-  return Array.from(ips).slice(0, 150);
+  return Array.from(byIp.values());
+}
+
+function deriveBanTypeFromJail(jailName) {
+  const jail = String(jailName || '').toLowerCase();
+  if (!jail) return 'GENERAL';
+  if (jail.includes('recidive')) return 'RECIDIVA';
+  if (jail.includes('sshd')) return 'SSH';
+  if (jail.includes('nginx-http-auth')) return 'HTTP-AUTH';
+  if (jail.includes('nginx-limit-req')) return 'RATE-LIMIT';
+  return jail.toUpperCase();
+}
+
+function deriveSecondsLeft(item) {
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  const explicitLeft = Number(item.seconds_left ?? item.remaining_seconds ?? item.left_seconds);
+  if (Number.isFinite(explicitLeft) && explicitLeft >= 0) return explicitLeft;
+
+  const unbanCandidates = [item.unban_at, item.unban_ts, item.expires_at, item.expire_at, item.until];
+  for (const candidate of unbanCandidates) {
+    if (candidate == null) continue;
+    const tsSec = normalizeToUnixSeconds(candidate);
+    if (tsSec != null && tsSec >= nowSec) return tsSec - nowSec;
+  }
+
+  const bannedAt = normalizeToUnixSeconds(item.banned_at ?? item.ban_ts ?? item.since);
+  const banTime = Number(item.ban_time ?? item.bantime ?? item.duration_seconds);
+  if (bannedAt != null && Number.isFinite(banTime) && banTime > 0) {
+    const left = bannedAt + banTime - nowSec;
+    return left > 0 ? left : 0;
+  }
+
+  return null;
+}
+
+function normalizeToUnixSeconds(value) {
+  if (value == null) return null;
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return null;
+    if (value > 1e12) return Math.floor(value / 1000);
+    return Math.floor(value);
+  }
+
+  const str = String(value).trim();
+  if (!str) return null;
+  if (/^\d+$/.test(str)) {
+    const num = Number(str);
+    if (!Number.isFinite(num)) return null;
+    return num > 1e12 ? Math.floor(num / 1000) : Math.floor(num);
+  }
+
+  const ms = Date.parse(str);
+  if (Number.isNaN(ms)) return null;
+  return Math.floor(ms / 1000);
+}
+
+function banTypeToCss(type) {
+  const t = String(type || '').toUpperCase();
+  if (t.includes('RECID')) return 'type-recidive';
+  if (t.includes('SSH')) return 'type-ssh';
+  if (t.includes('HTTP')) return 'type-http';
+  if (t.includes('RATE')) return 'type-rate';
+  return 'type-general';
+}
+
+function formatCountdown(totalSeconds) {
+  const s = Math.max(0, Number(totalSeconds) || 0);
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (hh > 0) return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+
+function startF2bCountdownTicker() {
+  if (f2bCountdownTimer) clearInterval(f2bCountdownTimer);
+  f2bCountdownTimer = setInterval(updateF2bCountdowns, 1000);
+  updateF2bCountdowns();
+}
+
+function updateF2bCountdowns() {
+  const nodes = document.querySelectorAll('.f2b-left[data-seconds-left]');
+  if (!nodes.length) return;
+
+  nodes.forEach(node => {
+    const raw = node.getAttribute('data-seconds-left');
+    if (raw == null || raw === '') return;
+    let left = Number(raw);
+    if (!Number.isFinite(left)) return;
+
+    node.textContent = formatCountdown(left);
+    if (left <= 0) {
+      node.classList.add('is-expiring');
+      return;
+    }
+
+    left -= 1;
+    node.setAttribute('data-seconds-left', String(left));
+    if (left <= 60) node.classList.add('is-expiring');
+  });
 }
 
 // ─── Gauges (SVG) ─────────────────────────────────────────────────────────────
@@ -399,6 +567,26 @@ function renderNetwork(net) {
 
   updateNetChart(net.history);
   renderConnectionDetail(net.established_detail);
+  renderNetworkSummary(net);
+}
+
+function renderNetworkSummary(net) {
+  const detail = Array.isArray(net?.established_detail) ? net.established_detail : [];
+  const inbound = detail.filter(conn => String(conn?.direction || '').toLowerCase() === 'inbound').length;
+  const outbound = detail.filter(conn => String(conn?.direction || '').toLowerCase() === 'outbound').length;
+  const internet = detail.filter(conn => String(conn?.location || '').toUpperCase() === 'INTERNET').length;
+  const lan = detail.filter(conn => String(conn?.location || '').toUpperCase() === 'LAN').length;
+  const suspicious = detail.filter(isPotentialIntrusionConn).length;
+  const portsCount = Array.isArray(net?.listening_ports) ? net.listening_ports.length : 0;
+  const totalRate = Number(net?.recv_rate || 0) + Number(net?.sent_rate || 0);
+
+  setText('net-ports-count', String(portsCount));
+  setText('net-inbound', String(inbound));
+  setText('net-outbound', String(outbound));
+  setText('net-internet', String(internet));
+  setText('net-lan', String(lan));
+  setText('net-suspicious', String(suspicious));
+  setText('net-total-rate', `${fmtBytes(totalRate)}/s`);
 }
 
 const CONN_TYPE_META = {
@@ -528,19 +716,74 @@ function renderEvents(events) {
   if (!list) return;
 
   setText('events-updated', `últ. actualiz: ${new Date().toLocaleTimeString('es-ES')}`);
+  list.classList.add('terminal-feed');
 
   if (!events?.length) {
-    list.innerHTML = '<div style="color:var(--text3);font-size:0.72rem;padding:0.5rem 0">Sin eventos recientes</div>';
+    list.innerHTML = '<div class="feed-empty">Sin eventos recientes</div>';
     return;
   }
 
-  list.innerHTML = events.map(ev => `
-    <div class="event-row ${esc(ev.level || 'info')}">
-      <span class="event-indicator"></span>
-      <span class="event-ts">${esc(ev.ts ? ev.ts.slice(11, 19) : '—')}</span>
-      <span class="event-label">${esc(ev.label || '')}</span>
-      <span class="event-ip">${esc(ev.ip || '')}</span>
-    </div>`).join('');
+  list.innerHTML = events.map(ev => {
+    const parsed = parseEventForFeed(ev);
+    return `<div class="feed-line ${parsed.tone}">` +
+      `<span class="feed-ts">${esc(parsed.syslogTs)}</span>` +
+      `<span class="feed-msg">${esc(parsed.msg)}</span>` +
+      `<span class="feed-from">from</span>` +
+      `<span class="feed-ip">${esc(parsed.ip)}</span>` +
+      `<span class="feed-port-word">port</span>` +
+      `<span class="feed-port">${esc(parsed.port)}</span>` +
+      `</div>`;
+  }).join('');
+}
+
+function formatSyslogTs(d) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const mon = months[d.getMonth()];
+  const day = String(d.getDate()).padStart(2, ' ');
+  const hh  = String(d.getHours()).padStart(2, '0');
+  const mm  = String(d.getMinutes()).padStart(2, '0');
+  const ss  = String(d.getSeconds()).padStart(2, '0');
+  return `${mon} ${day} ${hh}:${mm}:${ss}`;
+}
+
+function parseEventForFeed(ev) {
+  const ts = String(ev?.ts || '');
+  const label = String(ev?.label || '');
+  const raw = String(ev?.raw || ev?.message || ev?.msg || '');
+  const sourceText = `${label} ${raw}`.toLowerCase();
+  const ip = String(ev?.ip || extractFromText(`${label} ${raw}`, /\b(?:\d{1,3}\.){3}\d{1,3}\b/) || '—');
+
+  const isBan   = /\bban(ead|ned|)\b|fail2ban.*ban|ip bloqueada|ip baneada/.test(sourceText);
+  const isUnban = /\bunban(ead|ned|)\b|desban|desbanead|ip desbloqueada/.test(sourceText);
+
+  const dateObj  = ts ? new Date(ts) : null;
+  const validDate = dateObj && !Number.isNaN(dateObj.getTime());
+  const syslogTs  = validDate ? formatSyslogTs(dateObj) : '— — —:—:—';
+
+  const port = extractFromText(sourceText, /(?:port|puerto)\s*(\d{1,5})/, 1)
+    || (sourceText.includes('ssh') ? '22' : '—');
+
+  const msg = label || raw || 'Evento detectado';
+
+  let tone = 'tone-attempt';
+  if (isBan)   tone = 'tone-ban';
+  if (isUnban) tone = 'tone-unban';
+
+  return { syslogTs, msg, ip, port, tone };
+}
+
+function inferAttemptReason(sourceText, fallbackLabel) {
+  if (/usuario inv[aá]lido|invalid user/.test(sourceText)) return 'usuario no existe';
+  if (/failed password|contrase[nñ]a/.test(sourceText)) return 'credenciales incorrectas';
+  if (/authentication failure|auth failed|authentic/.test(sourceText)) return 'fallo de autenticación';
+  if (/connection closed|closed by/.test(sourceText)) return 'conexión cerrada antes de autenticar';
+  return fallbackLabel || 'acceso rechazado';
+}
+
+function extractFromText(text, regex, groupIndex = 0) {
+  const match = String(text || '').match(regex);
+  if (!match) return '';
+  return String(match[groupIndex] || '').trim();
 }
 
 // ─── Actualizaciones ──────────────────────────────────────────────────────────
@@ -585,7 +828,7 @@ function renderCountries(countries) {
   if (!list || !countries?.length) return;
 
   const max = Math.max(1, countries[0]?.count || 1);
-  list.innerHTML = countries.slice(0, 12).map(c => {
+  list.innerHTML = countries.slice(0, 18).map(c => {
     const pct  = Math.min(100, (c.count / max) * 100).toFixed(1);
     const flag = isoToFlag(c.iso || '');
     return `
@@ -633,35 +876,6 @@ function renderVpnDonut(ssh) {
   }
 }
 
-// ─── Tabla enriquecida de atacantes ──────────────────────────────────────────
-function renderEnrichedAttackers(attackers) {
-  const tbody = document.getElementById('enriched-attackers-body');
-  if (!tbody) return;
-
-  if (!attackers?.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="no-data">Sin datos de ataques</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = attackers.map((a, i) => {
-    const flag  = isoToFlag(a.country_iso || '');
-    const badge = a.is_datacenter
-      ? `<span class="vpn-badge">DC/VPN</span>`
-      : `<span class="direct-badge">Directo</span>`;
-    const org   = a.asn_org || a.isp || '—';
-    const city  = a.city || '—';
-    return `<tr class="enriched-row">
-      <td class="td-rank">${i + 1}</td>
-      <td class="td-ip"><span class="mono">${esc(a.ip)}</span></td>
-      <td class="td-country">${flag} ${esc(a.country || '?')}</td>
-      <td class="td-city">${esc(city)}</td>
-      <td class="td-asn" title="${esc(org)}">${esc(org.length > 22 ? org.slice(0, 20) + '…' : org)}</td>
-      <td class="td-type">${badge}</td>
-      <td class="td-count">${a.count}</td>
-    </tr>`;
-  }).join('');
-}
-
 // ─── Usuarios más atacados ────────────────────────────────────────────────────
 function renderUsernames(usernames) {
   const list = document.getElementById('usernames-list');
@@ -696,6 +910,38 @@ function renderHeatmap(ssh) {
 // ─── Hourly chart (24h) ───────────────────────────────────────────────────────
 function renderHourlyChart(attackHours) {
   if (typeof updateHourlyChart === 'function') updateHourlyChart(attackHours);
+
+  const values = Array.isArray(attackHours)
+    ? attackHours.map(v => Number(v) || 0)
+    : [];
+
+  if (!values.length) {
+    setText('hourly-total', '—');
+    setText('hourly-avg', '—');
+    setText('hourly-peak-hour', '—');
+    setText('hourly-peak-count', '—');
+    return;
+  }
+
+  const total = values.reduce((sum, n) => sum + n, 0);
+  const avg = total / values.length;
+  let peakIdx = 0;
+  let peakVal = values[0];
+  values.forEach((v, i) => {
+    if (v > peakVal) {
+      peakVal = v;
+      peakIdx = i;
+    }
+  });
+
+  const now = new Date();
+  const peakHour = new Date(now.getTime() - ((23 - peakIdx) * 3600 * 1000));
+  const hh = String(peakHour.getHours()).padStart(2, '0');
+
+  setText('hourly-total', String(total));
+  setText('hourly-avg', avg.toFixed(1));
+  setText('hourly-peak-hour', `${hh}:00`);
+  setText('hourly-peak-count', String(peakVal));
 }
 
 // ─── Helpers DOM ──────────────────────────────────────────────────────────────

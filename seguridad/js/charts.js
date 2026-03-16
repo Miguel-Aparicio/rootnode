@@ -735,8 +735,8 @@ function updateWorldGlobe(countries, liveAttackBurst = 0) {
         {
           ...pick,
           mode: 'live-burst-head',
-          color: 'rgba(255, 250, 245, 0.98)',
-          width: clamp(pick.width * 0.36, 0.09, 0.22),
+          color: 'rgba(255, 255, 200, 1)',
+          width: clamp(pick.width * 0.55, 0.14, 0.34),
           altitude: clamp((pick.altitude ?? 0.12) + 0.016, 0.08, 0.34),
           pulseOffset: headOffset,
           dashLength: 0.06,
@@ -745,8 +745,8 @@ function updateWorldGlobe(countries, liveAttackBurst = 0) {
         {
           ...pick,
           mode: 'live-burst-trail-1',
-          color: 'rgba(255, 214, 214, 0.62)',
-          width: clamp(pick.width * 0.28, 0.08, 0.19),
+          color: 'rgba(255, 160, 80, 0.85)',
+          width: clamp(pick.width * 0.42, 0.11, 0.28),
           altitude: clamp((pick.altitude ?? 0.12) + 0.014, 0.08, 0.34),
           pulseOffset: trail1Offset,
           dashLength: 0.1,
@@ -755,8 +755,8 @@ function updateWorldGlobe(countries, liveAttackBurst = 0) {
         {
           ...pick,
           mode: 'live-burst-trail-2',
-          color: 'rgba(255, 178, 178, 0.34)',
-          width: clamp(pick.width * 0.22, 0.07, 0.16),
+          color: 'rgba(255, 80, 80, 0.45)',
+          width: clamp(pick.width * 0.32, 0.09, 0.22),
           altitude: clamp((pick.altitude ?? 0.12) + 0.012, 0.08, 0.34),
           pulseOffset: trail2Offset,
           dashLength: 0.14,
@@ -769,7 +769,7 @@ function updateWorldGlobe(countries, liveAttackBurst = 0) {
     globeLivePulseTimer = setTimeout(() => {
       applyGlobeArcs([]);
       globeLivePulseTimer = null;
-    }, 900);
+    }, 1400);
   }
 }
 

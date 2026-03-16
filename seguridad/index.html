@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="css/styles.css?v=17"/>
+  <link rel="stylesheet" href="css/styles.css?v=34"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
@@ -83,6 +83,12 @@
     <div class="chart-wrap chart-tall">
       <canvas id="chart-ssh"></canvas>
     </div>
+    <div class="ssh-summary">
+      <div class="ssh-pill"><span class="ssh-lbl">Intentos 1h</span><span class="ssh-val" id="ssh-sum-1h">—</span></div>
+      <div class="ssh-pill"><span class="ssh-lbl">Total 24h</span><span class="ssh-val" id="ssh-sum-24h">—</span></div>
+      <div class="ssh-pill"><span class="ssh-lbl">IPs únicas 24h</span><span class="ssh-val" id="ssh-sum-ips">—</span></div>
+      <div class="ssh-pill"><span class="ssh-lbl">Pico/min</span><span class="ssh-val" id="ssh-sum-peak">—</span></div>
+    </div>
   </div>
 
   <!-- ── Fail2ban ── -->
@@ -98,7 +104,7 @@
       <div class="f2b-big" id="f2b-banned">—</div>
       <div class="f2b-sub">IPs baneadas ahora</div>
     </div>
-    <div class="f2b-list-title">Listado de IPs baneadas (tiempo real)</div>
+    <div class="f2b-list-title" id="f2b-list-title">Listado de IPs baneadas (tiempo real)</div>
     <div id="f2b-jails" class="f2b-jails"></div>
     <div class="f2b-totals">
       <div><span class="lbl">Total baneadas:</span> <span class="mono" id="f2b-total-banned">—</span></div>
@@ -244,20 +250,15 @@
     </div>
   </div>
 
-  <!-- ── Firewall ── -->
-  <div class="card card-fw">
+  <!-- ── Actualizaciones ── -->
+  <div class="card card-updates">
     <div class="card-hdr">
       <div class="card-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-        Firewall UFW
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Actualizaciones
       </div>
-      <span class="dot-status" id="fw-dot"></span>
     </div>
-    <div class="fw-status" id="fw-status">
-      <div class="fw-pill" id="fw-active-pill">—</div>
-    </div>
-    <div class="fw-defaults" id="fw-defaults"></div>
-    <div class="fw-rules-list" id="fw-rules"></div>
+    <div id="updates-content" class="updates-content"></div>
   </div>
 
   <!-- ── Tráfico de Red ── -->
@@ -275,6 +276,14 @@
     <div class="chart-wrap">
       <canvas id="chart-net"></canvas>
     </div>
+    <div class="net-kpi-grid">
+      <div class="net-kpi"><span class="net-kpi-lbl">Tráfico total</span><span class="net-kpi-val" id="net-total-rate">—</span></div>
+      <div class="net-kpi"><span class="net-kpi-lbl">Puertos activos</span><span class="net-kpi-val" id="net-ports-count">—</span></div>
+      <div class="net-kpi"><span class="net-kpi-lbl">Entrantes</span><span class="net-kpi-val" id="net-inbound">—</span></div>
+      <div class="net-kpi"><span class="net-kpi-lbl">Salientes</span><span class="net-kpi-val" id="net-outbound">—</span></div>
+      <div class="net-kpi"><span class="net-kpi-lbl">Internet</span><span class="net-kpi-val" id="net-internet">—</span></div>
+      <div class="net-kpi"><span class="net-kpi-lbl">Sospechosas</span><span class="net-kpi-val net-kpi-warn" id="net-suspicious">—</span></div>
+    </div>
     <div class="net-info-row">
       <div class="net-info"><span class="lbl">Total conex.:</span> <span class="mono" id="net-conns">—</span></div>
       <div class="net-info"><span class="lbl">Establecidas:</span> <span class="mono" id="net-estab">—</span></div>
@@ -286,26 +295,6 @@
         <span class="conn-detail-hint">Monitorización activa</span>
       </div>
       <div id="conn-detail-list" class="conn-detail-list"></div>
-    </div>
-  </div>
-
-  <!-- ── Top Atacantes (enriquecido) ── -->
-  <div class="card card-attackers">
-    <div class="card-hdr">
-      <div class="card-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Top Atacantes con Geo-Inteligencia (24h)
-      </div>
-    </div>
-    <div class="enriched-table-wrap">
-      <table class="enriched-table">
-        <thead>
-          <tr>
-            <th>#</th><th>IP</th><th>País</th><th>Ciudad</th><th>ASN / ISP</th><th>Tipo</th><th>Ataques</th>
-          </tr>
-        </thead>
-        <tbody id="enriched-attackers-body"></tbody>
-      </table>
     </div>
   </div>
 
@@ -330,6 +319,12 @@
     </div>
     <div class="chart-wrap chart-tall">
       <canvas id="chart-hourly"></canvas>
+    </div>
+    <div class="hourly-summary">
+      <div class="hourly-pill"><span class="hourly-lbl">Total 24h</span><span class="hourly-val" id="hourly-total">—</span></div>
+      <div class="hourly-pill"><span class="hourly-lbl">Media / h</span><span class="hourly-val" id="hourly-avg">—</span></div>
+      <div class="hourly-pill"><span class="hourly-lbl">Hora pico</span><span class="hourly-val" id="hourly-peak-hour">—</span></div>
+      <div class="hourly-pill"><span class="hourly-lbl">Pico ataques</span><span class="hourly-val" id="hourly-peak-count">—</span></div>
     </div>
   </div>
 
@@ -372,22 +367,11 @@
     <div id="events-list" class="events-list"></div>
   </div>
 
-  <!-- ── Actualizaciones ── -->
-  <div class="card card-updates">
-    <div class="card-hdr">
-      <div class="card-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        Actualizaciones
-      </div>
-    </div>
-    <div id="updates-content" class="updates-content"></div>
-  </div>
-
 </div><!-- /dash-grid -->
 
 </main>
 
-<script src="js/charts.js?v=34"></script>
-<script src="js/app.js?v=34"></script>
+<script src="js/charts.js?v=36"></script>
+<script src="js/app.js?v=47"></script>
 </body>
 </html>
