@@ -326,6 +326,8 @@ function updateWorldMap(countries) {
     const lift = clamp(distance * 0.18, 18, 58);
     const cx = x + dx / 2;
     const cy = y + dy / 2 - lift;
+    const baseWidth = lineWidth(country.count);
+    const shadowCy = cy + clamp(lift * 0.22, 5, 14);
     const level = country.count >= maxCount * 0.66 ? 'high' : (country.count >= maxCount * 0.33 ? 'mid' : 'low');
     const tooltip = [
       `<div class="map-tip-title">${escapeHtml(country.country)}</div>`,
@@ -336,9 +338,14 @@ function updateWorldMap(countries) {
     ].join('');
 
     routesLayer.append('path')
+      .attr('class', `map-route-shadow route-${level}`)
+      .attr('d', `M${x},${y} Q${cx},${shadowCy} ${sx},${sy}`)
+      .attr('stroke-width', baseWidth * 1.65);
+
+    routesLayer.append('path')
       .attr('class', `map-route route-${level} route-live route-live-${level}`)
       .attr('d', `M${x},${y} Q${cx},${cy} ${sx},${sy}`)
-      .attr('stroke-width', lineWidth(country.count))
+      .attr('stroke-width', baseWidth)
       .on('mouseenter', event => showMapTooltip(event, tooltip))
       .on('mousemove', event => placeMapTooltip(event))
       .on('mouseleave', hideMapTooltip);

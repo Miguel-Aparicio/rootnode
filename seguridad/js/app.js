@@ -11,6 +11,10 @@ const API_URL_CANDIDATES = [
   'http://127.0.0.1:5050/seguridad/api/',
 ];
 const POLL_MS      = 10_000;   // 10 segundos
+const API_TRY_TIMEOUT_MS = 1600;
+const STORAGE_ACTIVE_API = 'securepi.activeApiUrl';
+const STORAGE_LAST_DATA = 'securepi.lastPayload';
+const STORAGE_LAST_TS = 'securepi.lastPayloadTs';
 
 let countdown      = POLL_MS / 1000;
 let pollTimer      = null;
@@ -21,6 +25,9 @@ let activeApiUrl   = null;
 // ─── Arranque ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initCharts();
+  ensureDataSourcePill();
+  setDataSourceStatus('loading', 'Conectando...');
+  restoreLastSnapshot();
   fetchAndRender();
   startCountdown();
 });
@@ -43,6 +50,7 @@ function startCountdown() {
 async function fetchAndRender() {
   if (isLoading) return;
   isLoading = true;
+  setDataSourceStatus('loading', 'Sincronizando...');
 
   const icon = document.getElementById('refresh-icon');
   if (icon) icon.classList.add('spinning');
@@ -50,8 +58,11 @@ async function fetchAndRender() {
   try {
     const data = await fetchDashboardData();
     renderAll(data);
+    persistSnapshot(data);
+    setDataSourceStatus('live', 'En vivo');
     hideError();
   } catch (e) {
+    setDataSourceStatus('error', 'Sin conexion');
     showError(`Error al contactar la API: ${e.message}`);
   } finally {
     isLoading = false;
@@ -65,7 +76,7 @@ async function fetchDashboardData() {
 
   for (const url of candidates) {
     try {
-      const res = await fetch(url, { cache: 'no-store' });
+      const res = await fetchWithTimeout(url, { cache: 'no-store' }, API_TRY_TIMEOUT_MS);
       if (!res.ok) {
         errors.push(`${url} -> HTTP ${res.status}`);
         continue;
@@ -78,21 +89,26 @@ async function fetchDashboardData() {
       }
 
       activeApiUrl = url;
+      localStorage.setItem(STORAGE_ACTIVE_API, url);
       return data;
     } catch (err) {
       errors.push(`${url} -> ${err.message}`);
     }
   }
 
-  throw new Error(errors.join(' | '));
+  throw new Error(errors.slice(0, 3).join(' | '));
 }
 
 function getApiCandidates() {
   const protocol = window.location.protocol || 'http:';
   const host = window.location.hostname || '127.0.0.1';
   const dynamicBase = `${protocol}//${host}:5050`;
+  const rememberedApi = localStorage.getItem(STORAGE_ACTIVE_API);
 
   const dynamicCandidates = [
+    '/seguridad/api/',
+    '/api/seguridad/',
+    '/',
     `${dynamicBase}/`,
     `${dynamicBase}/seguridad/api/`,
   ];
@@ -103,6 +119,7 @@ function getApiCandidates() {
     unique.push(value);
   };
 
+  add(rememberedApi);
   if (activeApiUrl) add(activeApiUrl);
   dynamicCandidates.forEach(add);
   API_URL_CANDIDATES.forEach(add);
@@ -112,6 +129,41 @@ function getApiCandidates() {
   }
 
   return unique;
+}
+
+function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+}
+
+function restoreLastSnapshot() {
+  try {
+    const raw = localStorage.getItem(STORAGE_LAST_DATA);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (!isSecurityPayload(data)) return;
+    renderAll(data);
+
+    const ts = Number(localStorage.getItem(STORAGE_LAST_TS) || 0);
+    const updated = Number.isFinite(ts) && ts > 0
+      ? new Date(ts).toLocaleTimeString('es-ES')
+      : 'cache';
+    setText('events-updated', `últ. actualiz: ${updated} (cache)`);
+    setDataSourceStatus('cache', `Cache ${updated}`);
+  } catch {
+    // ignore cache errors
+  }
+}
+
+function persistSnapshot(data) {
+  try {
+    localStorage.setItem(STORAGE_LAST_DATA, JSON.stringify(data));
+    localStorage.setItem(STORAGE_LAST_TS, String(Date.now()));
+  } catch {
+    // ignore storage quota errors
+  }
 }
 
 function isSecurityPayload(data) {
@@ -648,4 +700,27 @@ function showError(msg) {
 function hideError() {
   const el = document.querySelector('.api-error');
   if (el) el.classList.remove('visible');
+}
+
+function ensureDataSourcePill() {
+  let pill = document.getElementById('data-source-pill');
+  if (pill) return pill;
+
+  const host = document.querySelector('.topbar-right') || document.querySelector('.refresh-wrap');
+  if (!host) return null;
+
+  pill = document.createElement('span');
+  pill.id = 'data-source-pill';
+  pill.className = 'data-source-pill is-loading';
+  pill.textContent = 'Conectando...';
+  host.appendChild(pill);
+  return pill;
+}
+
+function setDataSourceStatus(state, text) {
+  const pill = ensureDataSourcePill();
+  if (!pill) return;
+
+  pill.className = `data-source-pill is-${state}`;
+  pill.textContent = text;
 }
