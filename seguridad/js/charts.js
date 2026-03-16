@@ -16,6 +16,19 @@ const MAP_W = 960;
 const MAP_H = 460;
 const MAP_SPAIN = { lon: -3.7038, lat: 40.4168, label: 'Raspberry (España)' };
 const EMPTY_HEATMAP = Array.from({ length: 7 }, () => Array(24).fill(0));
+const COUNTRY_KEY_ALIASES = {
+  theunitedstatesofamerica: 'unitedstates',
+  unitedstatesofamerica: 'unitedstates',
+  unitedstates: 'unitedstates',
+  thenetherlands: 'netherlands',
+  holland: 'netherlands',
+  russianfederation: 'russia',
+  republicofkorea: 'southkorea',
+  korearepublicof: 'southkorea',
+  czechrepublic: 'czechia',
+  democraticrepublicofthecongo: 'democraticrepubliccongo',
+  demrepcongo: 'democraticrepubliccongo',
+};
 
 let sshChart = null;
 let netChart = null;
@@ -201,6 +214,16 @@ function initWorldMap() {
     .style('height', 'auto')
     .style('display', 'block');
 
+  const defs = mapSvg.append('defs');
+  defs.append('filter')
+    .attr('id', 'routeShadowBlur')
+    .attr('x', '-40%')
+    .attr('y', '-40%')
+    .attr('width', '180%')
+    .attr('height', '180%')
+    .append('feGaussianBlur')
+    .attr('stdDeviation', 3.8);
+
   ensureMapTooltip();
 
   mapViewport = mapSvg.append('g').attr('class', 'map-viewport');
@@ -283,7 +306,7 @@ function initWorldMap() {
     });
 }
 
-function updateWorldMap(countries) {
+function updateWorldMap(countries, liveAttackBurst = 0) {
   if (!mapReady || !mapViewport || !mapProjection) {
     mapPendingCountries = countries;
     return;
@@ -305,7 +328,7 @@ function updateWorldMap(countries) {
   if (!valid.length || !mapSpainXY) return;
 
   const maxCount = Math.max(...valid.map(country => country.count), 1);
-  const lineWidth = d3.scaleSqrt().domain([1, maxCount]).range([1.4, 5]);
+  const lineWidth = d3.scaleSqrt().domain([1, maxCount]).range([1.1, 2.8]);
   const nodeRadius = d3.scaleSqrt().domain([1, maxCount]).range([2.8, 8]);
   const levelText = { high: 'Alta actividad', mid: 'Actividad media', low: 'Actividad baja' };
   const statusText = {
@@ -313,6 +336,35 @@ function updateWorldMap(countries) {
     mid: 'Origen activo con volumen sostenido.',
     low: 'Origen detectado con actividad baja pero reciente.',
   };
+
+  const attacksByCountryKey = new Map();
+  valid.forEach(country => {
+    attacksByCountryKey.set(canonicalCountryKey(country.country), country);
+  });
+
+  mapViewport.select('.map-countries')
+    .selectAll('path')
+    .each(function(feature) {
+      const attack = findAttackForFeature(feature, attacksByCountryKey);
+      const countryPath = d3.select(this);
+      countryPath
+        .classed('map-country-active', Boolean(attack))
+        .style('cursor', attack ? 'pointer' : 'default')
+        .on('mouseenter', event => {
+          if (!attack) return;
+          showMapTooltip(event, buildAttackTooltip(attack, levelText, statusText, maxCount, true));
+        })
+        .on('mousemove', event => {
+          if (!attack) return;
+          placeMapTooltip(event);
+        })
+        .on('mouseleave', () => {
+          if (!attack) return;
+          hideMapTooltip();
+        });
+    });
+
+  const routeMeta = [];
 
   valid.forEach((country, index) => {
     const origin = mapProjection([country.lon, country.lat]);
@@ -323,32 +375,39 @@ function updateWorldMap(countries) {
     const dx = sx - x;
     const dy = sy - y;
     const distance = Math.hypot(dx, dy);
-    const lift = clamp(distance * 0.18, 18, 58);
-    const cx = x + dx / 2;
-    const cy = y + dy / 2 - lift;
+    const invDistance = distance > 0 ? 1 / distance : 0;
+    const nx = -dy * invDistance;
+    const curve = clamp(distance * 0.46, 58, 220);
+    const cx = x + dx * 0.5 + nx * curve * 0.62;
+    const cy = y + dy * 0.5 - curve * 1.08;
     const baseWidth = lineWidth(country.count);
-    const shadowCy = cy + clamp(lift * 0.22, 5, 14);
+    const shadowCx = cx + nx * curve * 0.16;
+    const shadowCy = cy + clamp(curve * 0.34, 16, 44);
     const level = country.count >= maxCount * 0.66 ? 'high' : (country.count >= maxCount * 0.33 ? 'mid' : 'low');
-    const tooltip = [
-      `<div class="map-tip-title">${escapeHtml(country.country)}</div>`,
-      `<div class="map-tip-row"><span>Intentos</span><strong>${country.count}</strong></div>`,
-      `<div class="map-tip-row"><span>Nivel</span><strong>${levelText[level]}</strong></div>`,
-      `<div class="map-tip-row"><span>Ranking</span><strong>#${index + 1}</strong></div>`,
-      `<div class="map-tip-note">${statusText[level]}</div>`,
-    ].join('');
+    const tooltip = buildAttackTooltip(country, levelText, statusText, maxCount, false, index + 1);
+    const routePath = `M${x},${y} Q${cx},${cy} ${sx},${sy}`;
 
     routesLayer.append('path')
       .attr('class', `map-route-shadow route-${level}`)
-      .attr('d', `M${x},${y} Q${cx},${shadowCy} ${sx},${sy}`)
-      .attr('stroke-width', baseWidth * 1.65);
+      .attr('d', `M${x},${y} Q${shadowCx},${shadowCy} ${sx},${sy}`)
+      .attr('stroke-width', baseWidth * 2.15)
+      .attr('filter', 'url(#routeShadowBlur)');
 
-    routesLayer.append('path')
-      .attr('class', `map-route route-${level} route-live route-live-${level}`)
-      .attr('d', `M${x},${y} Q${cx},${cy} ${sx},${sy}`)
+    const cablePath = routesLayer.append('path')
+      .attr('class', `map-route route-${level}`)
+      .attr('d', routePath)
       .attr('stroke-width', baseWidth)
       .on('mouseenter', event => showMapTooltip(event, tooltip))
       .on('mousemove', event => placeMapTooltip(event))
       .on('mouseleave', hideMapTooltip);
+
+    routeMeta.push({
+      routePath,
+      routeLength: cablePath.node()?.getTotalLength() || 1,
+      baseWidth,
+      level,
+      count: country.count,
+    });
 
     originsLayer.append('circle')
       .attr('class', `map-origin origin-${level}`)
@@ -359,6 +418,48 @@ function updateWorldMap(countries) {
       .on('mousemove', event => placeMapTooltip(event))
       .on('mouseleave', hideMapTooltip);
   });
+
+  const burstCount = clamp(Math.round(Number(liveAttackBurst) || 0), 0, 36);
+  if (burstCount > 0 && routeMeta.length > 0) {
+    const totalWeight = routeMeta.reduce((sum, route) => sum + route.count, 0) || 1;
+    for (let i = 0; i < burstCount; i += 1) {
+      const pick = pickWeightedRoute(routeMeta, totalWeight);
+      if (!pick) continue;
+
+      const pulseLength = clamp(pick.routeLength * 0.11, 18, 70);
+      const pulseTrace = routesLayer.append('path')
+        .attr('class', `map-route-pulse-trace pulse-${pick.level}`)
+        .attr('d', pick.routePath)
+        .attr('stroke-width', clamp(pick.baseWidth * 0.65, 0.95, 2.2))
+        .attr('stroke-dasharray', `${pulseLength} ${Math.max(pick.routeLength - pulseLength, 1)}`)
+        .attr('stroke-dashoffset', pick.routeLength)
+        .attr('opacity', 0);
+
+      pulseTrace.append('animate')
+        .attr('attributeName', 'opacity')
+        .attr('values', '0;1;0')
+        .attr('dur', '0.22s')
+        .attr('begin', `${(i * 0.03).toFixed(3)}s`)
+        .attr('repeatCount', '1');
+
+      pulseTrace.append('animate')
+        .attr('attributeName', 'stroke-dashoffset')
+        .attr('values', `${pick.routeLength};0`)
+        .attr('dur', `${clamp(0.18 - (pick.count / maxCount) * 0.08, 0.08, 0.18)}s`)
+        .attr('begin', `${(i * 0.03).toFixed(3)}s`)
+        .attr('repeatCount', '1');
+    }
+  }
+}
+
+function pickWeightedRoute(routes, totalWeight) {
+  if (!routes.length) return null;
+  let threshold = Math.random() * totalWeight;
+  for (const route of routes) {
+    threshold -= route.count;
+    if (threshold <= 0) return route;
+  }
+  return routes[routes.length - 1];
 }
 
 function renderMapDestination() {
@@ -373,6 +474,42 @@ function renderMapDestination() {
     .attr('cy', mapSpainXY[1])
     .attr('r', 10.5)
     .attr('data-base-r', 10.5);
+
+  const beatA = destinationLayer.append('circle')
+    .attr('class', 'map-spain-beat beat-a')
+    .attr('cx', mapSpainXY[0])
+    .attr('cy', mapSpainXY[1])
+    .attr('r', 8)
+    .attr('opacity', 0);
+  beatA.append('animate')
+    .attr('attributeName', 'r')
+    .attr('values', '8;26')
+    .attr('dur', '3.8s')
+    .attr('repeatCount', 'indefinite');
+  beatA.append('animate')
+    .attr('attributeName', 'opacity')
+    .attr('values', '0.48;0')
+    .attr('dur', '3.8s')
+    .attr('repeatCount', 'indefinite');
+
+  const beatB = destinationLayer.append('circle')
+    .attr('class', 'map-spain-beat beat-b')
+    .attr('cx', mapSpainXY[0])
+    .attr('cy', mapSpainXY[1])
+    .attr('r', 8)
+    .attr('opacity', 0);
+  beatB.append('animate')
+    .attr('attributeName', 'r')
+    .attr('values', '8;26')
+    .attr('dur', '3.8s')
+    .attr('begin', '1.9s')
+    .attr('repeatCount', 'indefinite');
+  beatB.append('animate')
+    .attr('attributeName', 'opacity')
+    .attr('values', '0.38;0')
+    .attr('dur', '3.8s')
+    .attr('begin', '1.9s')
+    .attr('repeatCount', 'indefinite');
 
   destinationLayer.append('circle')
     .attr('class', 'map-spain-node')
@@ -713,10 +850,49 @@ function normalizeHourly(input) {
 function normalizeCountry(country) {
   return {
     country: String(country?.country ?? country?.name ?? country?.label ?? 'Unknown'),
+    iso: String(country?.iso ?? country?.country_iso ?? '').toUpperCase(),
     count: Number(country?.count ?? country?.value ?? country?.attacks ?? 0),
     lon: toNumber(country?.lon ?? country?.lng ?? country?.longitude),
     lat: toNumber(country?.lat ?? country?.latitude),
   };
+}
+
+function buildAttackTooltip(country, levelText, statusText, maxCount, fromCountryArea, rank) {
+  const level = country.count >= maxCount * 0.66 ? 'high' : (country.count >= maxCount * 0.33 ? 'mid' : 'low');
+  const areaNote = fromCountryArea
+    ? '<div class="map-tip-row"><span>Zona</span><strong>Territorio del país</strong></div>'
+    : '';
+  const rankNote = rank
+    ? `<div class="map-tip-row"><span>Ranking</span><strong>#${rank}</strong></div>`
+    : '';
+  return [
+    `<div class="map-tip-title">${escapeHtml(country.country)}</div>`,
+    '<div class="map-tip-row"><span>Estado</span><strong class="tip-accent">País atacante</strong></div>',
+    `<div class="map-tip-row"><span>Intentos</span><strong>${country.count}</strong></div>`,
+    `<div class="map-tip-row"><span>Nivel</span><strong>${levelText[level]}</strong></div>`,
+    areaNote,
+    rankNote,
+    `<div class="map-tip-note">${statusText[level]}</div>`,
+  ].join('');
+}
+
+function findAttackForFeature(feature, attacksByCountryKey) {
+  const candidates = [];
+  const name = feature?.properties?.name;
+  if (name) {
+    candidates.push(canonicalCountryKey(name));
+  }
+
+  for (const key of candidates) {
+    if (attacksByCountryKey.has(key)) return attacksByCountryKey.get(key);
+  }
+
+  return null;
+}
+
+function canonicalCountryKey(value) {
+  const key = String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return COUNTRY_KEY_ALIASES[key] || key;
 }
 
 function toNumber(value) {

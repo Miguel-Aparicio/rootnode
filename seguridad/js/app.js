@@ -21,6 +21,8 @@ let pollTimer      = null;
 let countdownTimer = null;
 let isLoading      = false;
 let activeApiUrl   = null;
+let lastFailed24h  = null;
+let currentLiveAttackBurst = 0;
 
 // ─── Arranque ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -222,6 +224,15 @@ function renderStats(d) {
 function renderSSH(ssh) {
   if (!ssh) return;
   const count = ssh.failed_last_hour ?? 0;
+  const failed24h = Number(ssh.failed_last_24h ?? 0);
+
+  if (lastFailed24h == null) {
+    currentLiveAttackBurst = 0;
+  } else {
+    currentLiveAttackBurst = Math.max(0, failed24h - lastFailed24h);
+  }
+  lastFailed24h = failed24h;
+
   setText('ssh-1h-badge', `${count} en 1h`);
   updateSSHChart(ssh.timeline);
 }
@@ -508,7 +519,8 @@ function renderUpdates(upd) {
 // ─── Mapa de países ───────────────────────────────────────────────────────────
 function renderCountries(countries) {
   // Update D3 map bubbles
-  if (typeof updateWorldMap === 'function') updateWorldMap(countries || []);
+  if (typeof updateWorldMap === 'function') updateWorldMap(countries || [], currentLiveAttackBurst);
+  currentLiveAttackBurst = 0;
 
   // Update country count badge
   const cnt = (countries || []).length;
