@@ -566,7 +566,7 @@ main { padding: 1.2rem 1.2rem 0; max-width: 1500px; margin: 0 auto; }
    ═══════════════════════════════════════════════════════════════════════════ */
 .world-map-container {
   width: 100%;
-  min-height: 180px;
+  min-height: 260px;
   background: #071220;
   border-radius: 0.5rem;
   overflow: hidden;
@@ -574,8 +574,15 @@ main { padding: 1.2rem 1.2rem 0; max-width: 1500px; margin: 0 auto; }
   position: relative;
 }
 .world-map-container svg { display: block; width: 100%; height: auto; }
+.world-map-container canvas { display: block; width: 100%; height: auto; }
 .world-map-container svg { cursor: grab; touch-action: none; }
 .world-map-container svg:active { cursor: grabbing; }
+
+@media (max-width: 860px) {
+  .world-map-container {
+    min-height: 220px;
+  }
+}
 /* Ocean sphere */
 .map-sphere        { fill: #0d2240; }
 .map-sphere-border { fill: none; stroke: rgba(96,165,250,0.25); stroke-width: 0.8; }

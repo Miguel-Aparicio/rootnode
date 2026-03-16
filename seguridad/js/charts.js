@@ -42,8 +42,20 @@ let mapPath = null;
 let mapZoom = null;
 let mapReady = false;
 let mapPendingCountries = null;
+let mapPendingBurst = 0;
 let mapSpainXY = null;
 let mapTooltipEl = null;
+let mapMode = 'd3';
+let globeInstance = null;
+let globeContainer = null;
+let globeStaticRoutes = [];
+let globeLivePulseTimer = null;
+let globePointerEvent = null;
+let globeCountryFeatures = [];
+let globeAttacksByCountryKey = new Map();
+let globeMaxAttackCount = 1;
+let globeBasePoints = [];
+let globeLastAltitude = 1.9;
 
 function initCharts() {
   createSSHChart();
@@ -199,12 +211,19 @@ function setGauge(fillId, valueId, percent) {
 
 function initWorldMap() {
   const container = document.getElementById('world-map-container');
-  if (!container || mapSvg) return;
+  if (!container || mapSvg || globeInstance) return;
+
+  if (typeof Globe === 'function') {
+    initWorldGlobe(container);
+    return;
+  }
 
   if (typeof d3 === 'undefined' || typeof topojson === 'undefined') {
     container.innerHTML = '<p style="color:#475569;font-size:0.72rem;text-align:center;padding:3rem 1rem">Mapa no disponible</p>';
     return;
   }
+
+  mapMode = 'd3';
 
   mapSvg = d3.select(container)
     .append('svg')
@@ -292,8 +311,9 @@ function initWorldMap() {
 
       mapReady = true;
       if (mapPendingCountries) {
-        updateWorldMap(mapPendingCountries);
+        updateWorldMap(mapPendingCountries, mapPendingBurst);
         mapPendingCountries = null;
+        mapPendingBurst = 0;
       } else {
         renderMapDestination();
       }
@@ -306,9 +326,170 @@ function initWorldMap() {
     });
 }
 
+function initWorldGlobe(container) {
+  mapMode = 'globe';
+  globeContainer = container;
+  mapReady = false;
+
+  container.innerHTML = '';
+  ensureMapTooltip();
+  container.addEventListener('mousemove', event => {
+    globePointerEvent = event;
+  });
+
+  const width = Math.max(320, container.clientWidth || MAP_W);
+  const height = Math.max(240, Math.round(width * 0.52));
+
+  globeInstance = Globe({ animateIn: false })(container)
+    .width(width)
+    .height(height)
+    .backgroundColor('rgba(0,0,0,0)')
+    .showAtmosphere(true)
+    .atmosphereColor('#6ea8ff')
+    .atmosphereAltitude(0.12)
+    .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+    .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+    .arcAltitudeAutoScale(0)
+    .arcCurveResolution(72)
+    .arcCircularResolution(8)
+    .arcColor(route => route.color)
+    .arcStroke(route => route.width)
+    .arcDashLength(route => route.mode === 'live' ? 0.18 : 1)
+    .arcDashGap(route => route.mode === 'live' ? 0.82 : 0)
+    .arcDashInitialGap(() => Math.random())
+    .arcDashAnimateTime(route => route.mode === 'live' ? 260 : 0)
+    .arcLabel(route => route.label)
+    .pointLat(point => point.lat)
+    .pointLng(point => point.lon)
+    .pointAltitude(point => point.altitude)
+    .pointColor(point => point.color)
+    .pointRadius(point => point.radius)
+    .pointLabel(point => point.label)
+    .onPolygonHover(feature => {
+      if (!feature) {
+        container.style.cursor = 'grab';
+        hideMapTooltip();
+        return;
+      }
+
+      const attack = findAttackForFeature(feature, globeAttacksByCountryKey);
+      if (!attack || !globePointerEvent) {
+        container.style.cursor = 'grab';
+        hideMapTooltip();
+        return;
+      }
+
+      const levelText = { high: 'Alta actividad', mid: 'Actividad media', low: 'Actividad baja' };
+      const statusText = {
+        high: 'Origen con actividad especialmente intensa en la ventana actual.',
+        mid: 'Origen activo con volumen sostenido.',
+        low: 'Origen detectado con actividad baja pero reciente.',
+      };
+
+      container.style.cursor = 'pointer';
+      showMapTooltip(globePointerEvent, buildAttackTooltip(attack, levelText, statusText, globeMaxAttackCount, true));
+    })
+    .onArcHover(route => {
+      if (!route) {
+        container.style.cursor = 'grab';
+        hideMapTooltip();
+        return;
+      }
+      if (!globePointerEvent) return;
+      container.style.cursor = 'pointer';
+      showMapTooltip(globePointerEvent, route.tooltipHtml);
+    })
+    .onPointHover(point => {
+      if (!point) {
+        container.style.cursor = 'grab';
+        hideMapTooltip();
+        return;
+      }
+      if (!globePointerEvent) return;
+      container.style.cursor = 'pointer';
+      showMapTooltip(globePointerEvent, point.tooltipHtml || point.label || '');
+    });
+
+  try {
+    const controls = globeInstance.controls?.();
+    if (controls) {
+      controls.autoRotate = false;
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.rotateSpeed = 0.8;
+      controls.minDistance = 110;
+      controls.maxDistance = 500;
+      controls.addEventListener('change', () => {
+        const pov = globeInstance?.pointOfView?.();
+        if (!pov) return;
+        globeLastAltitude = Number(pov.altitude) || globeLastAltitude;
+        syncGlobePointScale();
+      });
+    }
+  } catch {
+    // keep defaults if controls are not available
+  }
+
+  const renderer = globeInstance.renderer?.();
+  if (renderer?.setPixelRatio) {
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  }
+
+  bindWorldMapControls();
+  bindGlobeResize();
+
+  d3.json(WORLD_TOPO)
+    .then(world => {
+      const countries = topojson.feature(world, world.objects.countries)?.features || [];
+      globeCountryFeatures = countries;
+      globeInstance
+        .polygonsData(globeCountryFeatures)
+        .polygonCapColor(() => 'rgba(44, 78, 128, 0.52)')
+        .polygonSideColor(() => 'rgba(31, 58, 98, 0.28)')
+        .polygonStrokeColor(() => 'rgba(112, 162, 241, 0.35)')
+        .polygonAltitude(0.004);
+
+      mapReady = true;
+      if (mapPendingCountries) {
+        updateWorldMap(mapPendingCountries, mapPendingBurst);
+        mapPendingCountries = null;
+        mapPendingBurst = 0;
+      }
+
+      zoomToGlobal();
+    })
+    .catch(() => {
+      mapReady = true;
+      if (mapPendingCountries) {
+        updateWorldMap(mapPendingCountries, mapPendingBurst);
+        mapPendingCountries = null;
+        mapPendingBurst = 0;
+      }
+      zoomToGlobal();
+    });
+}
+
+function bindGlobeResize() {
+  if (!globeContainer || globeContainer.dataset.resizeBound === '1') return;
+
+  globeContainer.dataset.resizeBound = '1';
+  window.addEventListener('resize', () => {
+    if (!globeInstance || !globeContainer) return;
+    const width = Math.max(320, globeContainer.clientWidth || MAP_W);
+    const height = Math.max(240, Math.round(width * 0.52));
+    globeInstance.width(width).height(height);
+  });
+}
+
 function updateWorldMap(countries, liveAttackBurst = 0) {
+  if (mapMode === 'globe') {
+    updateWorldGlobe(countries, liveAttackBurst);
+    return;
+  }
+
   if (!mapReady || !mapViewport || !mapProjection) {
     mapPendingCountries = countries;
+    mapPendingBurst = liveAttackBurst;
     return;
   }
 
@@ -452,6 +633,212 @@ function updateWorldMap(countries, liveAttackBurst = 0) {
   }
 }
 
+function updateWorldGlobe(countries, liveAttackBurst = 0) {
+  if (!mapReady || !globeInstance) {
+    mapPendingCountries = countries;
+    mapPendingBurst = liveAttackBurst;
+    return;
+  }
+
+  const valid = (Array.isArray(countries) ? countries : [])
+    .map(country => normalizeCountry(country))
+    .filter(country => Number.isFinite(country.lon) && Number.isFinite(country.lat) && country.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 40);
+
+  const maxCount = Math.max(...valid.map(country => country.count), 1);
+  globeMaxAttackCount = maxCount;
+  const levelText = { high: 'Alta actividad', mid: 'Actividad media', low: 'Actividad baja' };
+  const statusText = {
+    high: 'Origen con actividad especialmente intensa en la ventana actual.',
+    mid: 'Origen activo con volumen sostenido.',
+    low: 'Origen detectado con actividad baja pero reciente.',
+  };
+
+  globeAttacksByCountryKey = new Map();
+  valid.forEach(country => {
+    globeAttacksByCountryKey.set(canonicalCountryKey(country.country), country);
+  });
+
+  if (globeCountryFeatures.length) {
+    globeInstance
+      .polygonsData(globeCountryFeatures)
+      .polygonCapColor(feature => {
+        const attack = findAttackForFeature(feature, globeAttacksByCountryKey);
+        if (!attack) return 'rgba(44, 78, 128, 0.52)';
+        const level = attack.count >= maxCount * 0.66 ? 'high' : (attack.count >= maxCount * 0.33 ? 'mid' : 'low');
+        if (level === 'high') return 'rgba(139, 22, 22, 0.88)';
+        if (level === 'mid') return 'rgba(126, 34, 34, 0.82)';
+        return 'rgba(112, 43, 43, 0.76)';
+      })
+      .polygonSideColor(feature => {
+        const attack = findAttackForFeature(feature, globeAttacksByCountryKey);
+        return attack ? 'rgba(114, 24, 24, 0.42)' : 'rgba(31, 58, 98, 0.28)';
+      })
+      .polygonStrokeColor(feature => {
+        const attack = findAttackForFeature(feature, globeAttacksByCountryKey);
+        return attack ? 'rgba(252, 165, 165, 0.55)' : 'rgba(112, 162, 241, 0.35)';
+      })
+      .polygonAltitude(feature => {
+        const attack = findAttackForFeature(feature, globeAttacksByCountryKey);
+        return attack ? 0.011 : 0.004;
+      });
+  }
+
+  const widthFor = count => 0.42 + Math.sqrt(count / maxCount) * 0.92;
+  const pointRadiusFor = count => 0.24 + Math.sqrt(count / maxCount) * 0.42;
+  const colorForLevel = level => {
+    if (level === 'high') return 'rgba(205, 28, 28, 0.95)';
+    if (level === 'mid') return 'rgba(178, 33, 33, 0.92)';
+    return 'rgba(158, 37, 37, 0.9)';
+  };
+
+  globeStaticRoutes = valid.flatMap((country, index) => {
+    const level = country.count >= maxCount * 0.66 ? 'high' : (country.count >= maxCount * 0.33 ? 'mid' : 'low');
+    const tooltipHtml = buildAttackTooltip(country, levelText, statusText, maxCount, false, index + 1);
+    const baseColor = colorForLevel(level);
+    const coreWidth = clamp(widthFor(country.count) * 1.18, 0.78, 2.2);
+    const routeAltitude = computeGlobeRouteAltitude(country.lon, country.lat, MAP_SPAIN.lon, MAP_SPAIN.lat, country.count, maxCount);
+
+    const baseRoute = {
+      mode: 'base',
+      country: country.country,
+      count: country.count,
+      level,
+      startLat: country.lat,
+      startLng: country.lon,
+      endLat: MAP_SPAIN.lat,
+      endLng: MAP_SPAIN.lon,
+      color: baseColor,
+      width: coreWidth,
+      altitude: routeAltitude,
+      label: `<b>${escapeHtml(country.country)}</b><br/>Intentos: ${country.count}`,
+      tooltipHtml,
+    };
+
+    const glowRoute = {
+      ...baseRoute,
+      mode: 'base-glow',
+      color: 'rgba(255, 92, 92, 0.22)',
+      width: clamp(coreWidth * 2.2, 1.4, 4.6),
+      altitude: routeAltitude * 0.96,
+    };
+
+    return [glowRoute, baseRoute];
+  });
+
+  const originPoints = valid.map((country, index) => {
+    const level = country.count >= maxCount * 0.66 ? 'high' : (country.count >= maxCount * 0.33 ? 'mid' : 'low');
+    const tooltipHtml = buildAttackTooltip(country, levelText, statusText, maxCount, false, index + 1);
+    const pointColor = level === 'high' ? 'rgba(205, 28, 28, 0.98)' : (level === 'mid' ? 'rgba(178, 33, 33, 0.95)' : 'rgba(158, 37, 37, 0.92)');
+    return {
+      lat: country.lat,
+      lon: country.lon,
+      altitude: 0.012,
+      baseRadius: clamp(pointRadiusFor(country.count) * 1.12, 0.3, 1.0),
+      color: pointColor,
+      label: `<b>${escapeHtml(country.country)}</b><br/>Origen atacante`,
+      tooltipHtml,
+    };
+  });
+
+  const spainPoint = {
+    lat: MAP_SPAIN.lat,
+    lon: MAP_SPAIN.lon,
+    altitude: 0.018,
+    baseRadius: 0.64,
+    color: 'rgba(220, 42, 42, 0.98)',
+    label: `<b>${escapeHtml(MAP_SPAIN.label)}</b><br/>Destino`,
+    tooltipHtml: `<div class="map-tip-title">${escapeHtml(MAP_SPAIN.label)}</div><div class="map-tip-row"><span>Estado</span><strong>Destino protegido</strong></div>`,
+  };
+
+  globeBasePoints = [spainPoint, ...originPoints];
+  syncGlobePointScale();
+  applyGlobeArcs([]);
+  emitGlobeSpainHeartbeat();
+
+  const burstCount = clamp(Math.round(Number(liveAttackBurst) || 0), 0, 36);
+  if (!burstCount || !globeStaticRoutes.length) return;
+
+  const livePool = globeStaticRoutes.filter(route => route.mode === 'base');
+  const totalWeight = livePool.reduce((sum, route) => sum + route.count, 0) || 1;
+  const liveRoutes = [];
+  for (let i = 0; i < burstCount; i += 1) {
+    const pick = pickWeightedRoute(livePool, totalWeight);
+    if (!pick) continue;
+
+    liveRoutes.push({
+      ...pick,
+      mode: 'live',
+      color: 'rgba(255, 236, 200, 0.98)',
+      width: clamp(pick.width * 0.72, 0.6, 1.8),
+      altitude: pick.altitude + 0.028,
+    });
+  }
+
+  applyGlobeArcs(liveRoutes);
+
+  if (globeLivePulseTimer) clearTimeout(globeLivePulseTimer);
+  globeLivePulseTimer = setTimeout(() => {
+    applyGlobeArcs([]);
+  }, 520);
+}
+
+function applyGlobeArcs(liveRoutes) {
+  if (!globeInstance) return;
+  const allRoutes = [...globeStaticRoutes, ...(liveRoutes || [])];
+  globeInstance
+    .arcsData(allRoutes)
+    .arcAltitude(route => route.altitude ?? (route.mode === 'live' ? 0.08 : 0.06))
+    .arcDashAnimateTime(route => route.mode === 'live' ? 260 : 0);
+}
+
+function computeGlobeRouteAltitude(startLon, startLat, endLon, endLat, count, maxCount) {
+  const toRad = value => (Number(value) || 0) * (Math.PI / 180);
+  const dLat = toRad(endLat - startLat);
+  const dLon = toRad(endLon - startLon);
+  const lat1 = toRad(startLat);
+  const lat2 = toRad(endLat);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const earthKm = 6371;
+  const distanceKm = earthKm * c;
+  const distanceFactor = clamp(distanceKm / 12000, 0.22, 1);
+  const intensityFactor = clamp(Math.sqrt((Number(count) || 1) / Math.max(maxCount, 1)), 0.32, 1);
+  return clamp(0.055 + distanceFactor * 0.17 + intensityFactor * 0.06, 0.07, 0.29);
+}
+
+function syncGlobePointScale() {
+  if (!globeInstance) return;
+  const base = Array.isArray(globeBasePoints) ? globeBasePoints : [];
+  const altitude = clamp(Number(globeLastAltitude) || 1.9, 0.46, 3.8);
+  const scale = clamp(Math.sqrt(altitude / 1.55), 0.66, 1.72);
+  const points = base.map(point => ({
+    ...point,
+    radius: clamp((point.baseRadius || 0.4) * scale, 0.2, 1.8),
+  }));
+  globeInstance.pointsData(points);
+}
+
+function emitGlobeSpainHeartbeat() {
+  if (!globeInstance) return;
+
+  globeInstance.ringsData([
+    {
+      lat: MAP_SPAIN.lat,
+      lon: MAP_SPAIN.lon,
+      color: () => 'rgba(248, 113, 113, 0.32)',
+      maxR: 4.6,
+      propagationSpeed: 1.2,
+      repeatPeriod: 1900,
+    },
+  ])
+    .ringColor(ring => ring.color)
+    .ringMaxRadius(ring => ring.maxR)
+    .ringPropagationSpeed(ring => ring.propagationSpeed)
+    .ringRepeatPeriod(ring => ring.repeatPeriod);
+}
+
 function pickWeightedRoute(routes, totalWeight) {
   if (!routes.length) return null;
   let threshold = Math.random() * totalWeight;
@@ -538,25 +925,53 @@ function bindWorldMapControls() {
   center.dataset.bound = '1';
   global.dataset.bound = '1';
 
-  zoomIn.addEventListener('click', () => {
-    if (mapSvg && mapZoom) mapSvg.transition().duration(180).call(mapZoom.scaleBy, 1.25);
-  });
+  zoomIn.addEventListener('click', mapZoomIn);
 
-  zoomOut.addEventListener('click', () => {
-    if (mapSvg && mapZoom) mapSvg.transition().duration(180).call(mapZoom.scaleBy, 0.8);
-  });
+  zoomOut.addEventListener('click', mapZoomOut);
 
   center.addEventListener('click', zoomToSpain);
   global.addEventListener('click', zoomToGlobal);
 }
 
+function mapZoomIn() {
+  if (mapMode === 'globe' && globeInstance) {
+    const current = globeInstance.pointOfView();
+    const altitude = clamp((current.altitude ?? 1.8) * 0.82, 0.46, 3.8);
+    globeInstance.pointOfView({ ...current, altitude }, 220);
+    return;
+  }
+
+  if (mapSvg && mapZoom) mapSvg.transition().duration(180).call(mapZoom.scaleBy, 1.25);
+}
+
+function mapZoomOut() {
+  if (mapMode === 'globe' && globeInstance) {
+    const current = globeInstance.pointOfView();
+    const altitude = clamp((current.altitude ?? 1.8) * 1.24, 0.46, 3.8);
+    globeInstance.pointOfView({ ...current, altitude }, 220);
+    return;
+  }
+
+  if (mapSvg && mapZoom) mapSvg.transition().duration(180).call(mapZoom.scaleBy, 0.8);
+}
+
 function zoomToGlobal() {
+  if (mapMode === 'globe' && globeInstance) {
+    globeInstance.pointOfView({ lat: 18, lng: 0, altitude: 1.9 }, 620);
+    return;
+  }
+
   if (mapSvg && mapZoom) {
     mapSvg.transition().duration(250).call(mapZoom.transform, d3.zoomIdentity);
   }
 }
 
 function zoomToSpain() {
+  if (mapMode === 'globe' && globeInstance) {
+    globeInstance.pointOfView({ lat: MAP_SPAIN.lat, lng: MAP_SPAIN.lon, altitude: 0.92 }, 720);
+    return;
+  }
+
   if (!mapSvg || !mapZoom || !mapSpainXY) return;
   const scale = 2.2;
   const transform = d3.zoomIdentity
