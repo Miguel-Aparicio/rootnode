@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SecurePi — Monitor de Seguridad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/styles.css?v=7"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══════════════════════════════════════════════════════════════ -->
+<nav class="topbar">
+  <a href="/" class="back-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Inicio
+  </a>
+
+  <div class="topbar-brand">
+    <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" width="22" height="22">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <polyline points="9 12 11 14 15 10"/>
+    </svg>
+    <span>SecurePi</span>
+  </div>
+
+  <div class="topbar-right">
+    <span class="hostname" id="hostname">—</span>
+    <div class="threat-pill" id="threat-pill" data-level="LOW">
+      <span class="threat-pulse"></span>
+      <span id="threat-label">—</span>
+    </div>
+    <div class="refresh-wrap" id="refresh-wrap" title="Actualizando...">
+      <svg class="refresh-icon" id="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      <span id="refresh-countdown">—</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<!-- ══ STATS BAR ═══════════════════════════════════════════════════════════ -->
+<div class="stats-row">
+  <div class="stat-card" data-color="red">
+    <div class="stat-val" id="stat-ssh24">—</div>
+    <div class="stat-lbl">Ataques SSH 24h</div>
+  </div>
+  <div class="stat-card" data-color="orange">
+    <div class="stat-val" id="stat-ssh1h">—</div>
+    <div class="stat-lbl">Fallos última hora</div>
+  </div>
+  <div class="stat-card" data-color="yellow">
+    <div class="stat-val" id="stat-ips">—</div>
+    <div class="stat-lbl">IPs atacantes 24h</div>
+  </div>
+  <div class="stat-card" data-color="cyan">
+    <div class="stat-val" id="stat-banned">—</div>
+    <div class="stat-lbl">IPs baneadas ahora</div>
+  </div>
+  <div class="stat-card" data-color="green">
+    <div class="stat-val" id="stat-uptime">—</div>
+    <div class="stat-lbl">Tiempo activo</div>
+  </div>
+</div>
+
+<!-- ══ GRID PRINCIPAL ══════════════════════════════════════════════════════ -->
+<div class="dash-grid">
+
+  <!-- ── SSH Attack Timeline ── -->
+  <div class="card card-ssh">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Ataques SSH — últimos 60 minutos
+      </div>
+      <span class="badge-red" id="ssh-1h-badge">—</span>
+    </div>
+    <div class="chart-wrap chart-tall">
+      <canvas id="chart-ssh"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Fail2ban ── -->
+  <div class="card card-f2b">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Fail2ban
+      </div>
+      <span class="dot-status" id="f2b-dot" title="Estado"></span>
+    </div>
+    <div class="f2b-summary">
+      <div class="f2b-big" id="f2b-banned">—</div>
+      <div class="f2b-sub">IPs baneadas ahora</div>
+    </div>
+    <div id="f2b-jails" class="f2b-jails"></div>
+    <div class="f2b-totals">
+      <div><span class="lbl">Total baneadas:</span> <span class="mono" id="f2b-total-banned">—</span></div>
+      <div><span class="lbl">Total intentos:</span> <span class="mono" id="f2b-total-failed">—</span></div>
+    </div>
+  </div>
+
+  <!-- ── Mapa Mundial de Ataques ── -->
+  <div class="card card-worldmap">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Mapa de Ataques en Tiempo Real
+      </div>
+      <span class="badge-cyan" id="map-country-count">— países</span>
+    </div>
+    <div id="world-map-container" class="world-map-container"></div>
+    <div class="map-legend" aria-label="Leyenda de actividad del mapa">
+      <span class="map-leg-item"><i class="map-leg-dot high"></i> Alta actividad</span>
+      <span class="map-leg-item"><i class="map-leg-dot mid"></i> Media actividad</span>
+      <span class="map-leg-item"><i class="map-leg-dot low"></i> Baja actividad</span>
+      <span class="map-leg-note">Sin línea = sin ataques recientes</span>
+    </div>
+    <div class="map-controls" aria-label="Controles del mapa">
+      <div class="map-controls-row">
+        <button type="button" class="map-btn" id="map-zoom-in">＋</button>
+        <button type="button" class="map-btn" id="map-zoom-out">－</button>
+        <button type="button" class="map-btn" id="map-center">Centrar</button>
+      </div>
+      <div class="map-controls-row map-controls-row-bottom">
+        <button type="button" class="map-btn map-btn-global" id="map-global">Vista global</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Heatmap 7 días × 24 horas ── -->
+  <div class="card card-heatmap">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Mapa de Calor — 7 días × 24 horas
+      </div>
+    </div>
+    <div id="heatmap-container" class="heatmap-container"></div>
+  </div>
+
+  <!-- ── Países atacantes ── -->
+  <div class="card card-countries">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        Top Países Atacantes (24h)
+      </div>
+    </div>
+    <div id="countries-list" class="countries-list"></div>
+  </div>
+
+  <!-- ── VPN / Datacenter vs Directo ── -->
+  <div class="card card-vpn">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Origen de Ataques
+      </div>
+    </div>
+    <div class="vpn-donut-wrap">
+      <div class="vpn-donut-inner">
+        <canvas id="chart-vpn"></canvas>
+      </div>
+    </div>
+    <div class="vpn-legend" id="vpn-legend"></div>
+    <div class="vpn-asns" id="vpn-asns"></div>
+  </div>
+
+  <!-- ── CPU ── -->
+  <div class="card card-gauge">
+    <div class="card-hdr">
+      <div class="card-title">CPU</div>
+      <span class="temp-badge" id="cpu-temp">—</span>
+    </div>
+    <div class="gauge-container">
+      <svg class="gauge-svg" viewBox="0 0 120 100">
+        <path class="gauge-track" d="M 15 85 A 55 55 0 1 1 105 85" fill="none" stroke-width="9" stroke-linecap="round"/>
+        <path class="gauge-fill" id="gauge-cpu-fill" d="M 15 85 A 55 55 0 1 1 105 85" fill="none" stroke-width="9" stroke-linecap="round" stroke="url(#gradientCpu)"/>
+        <defs>
+          <linearGradient id="gradientCpu" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#22c55e"/>
+            <stop offset="60%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#ef4444"/>
+          </linearGradient>
+        </defs>
+        <text class="gauge-val-text" x="60" y="65" id="gauge-cpu-val">0%</text>
+        <text class="gauge-lbl-text" x="60" y="80">CPU</text>
+      </svg>
+      <div class="load-row" id="cpu-load">—</div>
+    </div>
+  </div>
+
+  <!-- ── RAM ── -->
+  <div class="card card-gauge">
+    <div class="card-hdr">
+      <div class="card-title">Memoria RAM</div>
+      <span class="mem-badge" id="ram-badge">—</span>
+    </div>
+    <div class="gauge-container">
+      <svg class="gauge-svg" viewBox="0 0 120 100">
+        <path class="gauge-track" d="M 15 85 A 55 55 0 1 1 105 85" fill="none" stroke-width="9" stroke-linecap="round"/>
+        <path class="gauge-fill" id="gauge-ram-fill" d="M 15 85 A 55 55 0 1 1 105 85" fill="none" stroke-width="9" stroke-linecap="round" stroke="url(#gradientRam)"/>
+        <defs>
+          <linearGradient id="gradientRam" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#22c55e"/>
+            <stop offset="60%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#ef4444"/>
+          </linearGradient>
+        </defs>
+        <text class="gauge-val-text" x="60" y="65" id="gauge-ram-val">0%</text>
+        <text class="gauge-lbl-text" x="60" y="80">RAM</text>
+      </svg>
+      <div class="gauge-sub" id="ram-detail">—</div>
+    </div>
+  </div>
+
+  <!-- ── Disco ── -->
+  <div class="card card-gauge">
+    <div class="card-hdr">
+      <div class="card-title">Disco</div>
+    </div>
+    <div class="gauge-container">
+      <svg class="gauge-svg" viewBox="0 0 120 100">
+        <path class="gauge-track" d="M 15 85 A 55 55 0 1 1 105 85" fill="none" stroke-width="9" stroke-linecap="round"/>
+        <path class="gauge-fill" id="gauge-disk-fill" d="M 15 85 A 55 55 0 1 1 105 85" fill="none" stroke-width="9" stroke-linecap="round" stroke="url(#gradientDisk)"/>
+        <defs>
+          <linearGradient id="gradientDisk" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#22c55e"/>
+            <stop offset="60%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#ef4444"/>
+          </linearGradient>
+        </defs>
+        <text class="gauge-val-text" x="60" y="65" id="gauge-disk-val">0%</text>
+        <text class="gauge-lbl-text" x="60" y="80">Disco</text>
+      </svg>
+      <div class="gauge-sub" id="disk-detail">—</div>
+    </div>
+  </div>
+
+  <!-- ── Firewall ── -->
+  <div class="card card-fw">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Firewall UFW
+      </div>
+      <span class="dot-status" id="fw-dot"></span>
+    </div>
+    <div class="fw-status" id="fw-status">
+      <div class="fw-pill" id="fw-active-pill">—</div>
+    </div>
+    <div class="fw-defaults" id="fw-defaults"></div>
+    <div class="fw-rules-list" id="fw-rules"></div>
+  </div>
+
+  <!-- ── Tráfico de Red ── -->
+  <div class="card card-net">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Tráfico de Red
+      </div>
+      <div class="net-rates">
+        <span class="rate-recv" id="net-recv">↓ —</span>
+        <span class="rate-sent" id="net-sent">↑ —</span>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chart-net"></canvas>
+    </div>
+    <div class="net-info-row">
+      <div class="net-info"><span class="lbl">Total conex.:</span> <span class="mono" id="net-conns">—</span></div>
+      <div class="net-info"><span class="lbl">Establecidas:</span> <span class="mono" id="net-estab">—</span></div>
+      <div class="net-info"><span class="lbl">Puertos escucha:</span> <span class="mono" id="net-ports">—</span></div>
+    </div>
+    <div class="conn-detail-wrap" id="conn-detail-wrap">
+      <div class="conn-detail-title">
+        Desglose de conexiones establecidas
+        <span class="conn-detail-hint">(100% verificadas — no hay intrusiones)</span>
+      </div>
+      <div id="conn-detail-list" class="conn-detail-list"></div>
+    </div>
+  </div>
+
+  <!-- ── Top Atacantes (enriquecido) ── -->
+  <div class="card card-attackers">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Top Atacantes con Geo-Inteligencia (24h)
+      </div>
+    </div>
+    <div class="enriched-table-wrap">
+      <table class="enriched-table">
+        <thead>
+          <tr>
+            <th>#</th><th>IP</th><th>País</th><th>Ciudad</th><th>ASN / ISP</th><th>Tipo</th><th>Ataques</th>
+          </tr>
+        </thead>
+        <tbody id="enriched-attackers-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Usuarios más atacados ── -->
+  <div class="card card-usernames">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Usuarios más Atacados (24h)
+      </div>
+    </div>
+    <div id="usernames-list" class="usernames-list"></div>
+  </div>
+
+  <!-- ── Ataques por hora (24h) ── -->
+  <div class="card card-hourly">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Ataques por Hora — últimas 24h
+      </div>
+    </div>
+    <div class="chart-wrap chart-tall">
+      <canvas id="chart-hourly"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Sesiones Activas ── -->
+  <div class="card card-sessions">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Sesiones Activas
+      </div>
+      <span class="badge-cyan" id="sessions-count">0</span>
+    </div>
+    <div id="sessions-list" class="sessions-list"></div>
+    <div class="card-hdr" style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border)">
+      <div class="card-title" style="font-size:0.7rem">Últimos accesos</div>
+    </div>
+    <div id="recent-logins" class="recent-logins"></div>
+  </div>
+
+  <!-- ── Servicios ── -->
+  <div class="card card-services">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Estado de Servicios
+      </div>
+    </div>
+    <div id="services-grid" class="services-grid"></div>
+  </div>
+
+  <!-- ── Eventos Recientes ── -->
+  <div class="card card-events">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+        Eventos de Seguridad Recientes
+      </div>
+      <span class="lbl" id="events-updated">—</span>
+    </div>
+    <div id="events-list" class="events-list"></div>
+  </div>
+
+  <!-- ── Actualizaciones ── -->
+  <div class="card card-updates">
+    <div class="card-hdr">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Actualizaciones
+      </div>
+    </div>
+    <div id="updates-content" class="updates-content"></div>
+  </div>
+
+</div><!-- /dash-grid -->
+
+</main>
+
+<script src="js/charts.js?v=8"></script>
+<script src="js/app.js?v=8"></script>
+</body>
+</html>
