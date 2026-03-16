@@ -354,10 +354,10 @@ function initWorldGlobe(container) {
     .arcCircularResolution(8)
     .arcColor(route => route.color)
     .arcStroke(route => route.width)
-    .arcDashLength(route => route.mode === 'live' ? 0.18 : 1)
-    .arcDashGap(route => route.mode === 'live' ? 0.82 : 0)
-    .arcDashInitialGap(() => Math.random())
-    .arcDashAnimateTime(route => route.mode === 'live' ? 260 : 0)
+    .arcDashLength(1)
+    .arcDashGap(0)
+    .arcDashInitialGap(0)
+    .arcDashAnimateTime(0)
     .arcLabel(route => route.label)
     .pointLat(point => point.lat)
     .pointLng(point => point.lon)
@@ -428,6 +428,11 @@ function initWorldGlobe(container) {
     }
   } catch {
     // keep defaults if controls are not available
+  }
+
+  // Some globe.gl builds do not expose this setter; keep it optional to avoid breaking init.
+  if (typeof globeInstance.arcTransitionDuration === 'function') {
+    globeInstance.arcTransitionDuration(0);
   }
 
   const renderer = globeInstance.renderer?.();
@@ -685,112 +690,38 @@ function updateWorldGlobe(countries, liveAttackBurst = 0) {
       });
   }
 
-  const widthFor = count => 0.42 + Math.sqrt(count / maxCount) * 0.92;
-  const pointRadiusFor = count => 0.24 + Math.sqrt(count / maxCount) * 0.42;
-  const colorForLevel = level => {
-    if (level === 'high') return 'rgba(205, 28, 28, 0.95)';
-    if (level === 'mid') return 'rgba(178, 33, 33, 0.92)';
-    return 'rgba(158, 37, 37, 0.9)';
-  };
+  const routeWidth = count => 0.18 + Math.sqrt(count / maxCount) * 0.38;
+  globeStaticRoutes = valid.map((country, index) => ({
+    mode: 'base',
+    country: country.country,
+    count: country.count,
+    startLat: country.lat,
+    startLng: country.lon,
+    endLat: MAP_SPAIN.lat,
+    endLng: MAP_SPAIN.lon,
+    color: 'rgba(220, 42, 42, 0.95)',
+    width: clamp(routeWidth(country.count), 0.18, 0.62),
+    altitude: computeGlobeRouteAltitude(country.lon, country.lat, MAP_SPAIN.lon, MAP_SPAIN.lat, country.count, maxCount),
+    label: `<b>${escapeHtml(country.country)}</b><br/>Intentos: ${country.count}`,
+    tooltipHtml: buildAttackTooltip(country, levelText, statusText, maxCount, false, index + 1),
+  }));
 
-  globeStaticRoutes = valid.flatMap((country, index) => {
-    const level = country.count >= maxCount * 0.66 ? 'high' : (country.count >= maxCount * 0.33 ? 'mid' : 'low');
-    const tooltipHtml = buildAttackTooltip(country, levelText, statusText, maxCount, false, index + 1);
-    const baseColor = colorForLevel(level);
-    const coreWidth = clamp(widthFor(country.count) * 1.18, 0.78, 2.2);
-    const routeAltitude = computeGlobeRouteAltitude(country.lon, country.lat, MAP_SPAIN.lon, MAP_SPAIN.lat, country.count, maxCount);
-
-    const baseRoute = {
-      mode: 'base',
-      country: country.country,
-      count: country.count,
-      level,
-      startLat: country.lat,
-      startLng: country.lon,
-      endLat: MAP_SPAIN.lat,
-      endLng: MAP_SPAIN.lon,
-      color: baseColor,
-      width: coreWidth,
-      altitude: routeAltitude,
-      label: `<b>${escapeHtml(country.country)}</b><br/>Intentos: ${country.count}`,
-      tooltipHtml,
-    };
-
-    const glowRoute = {
-      ...baseRoute,
-      mode: 'base-glow',
-      color: 'rgba(255, 92, 92, 0.22)',
-      width: clamp(coreWidth * 2.2, 1.4, 4.6),
-      altitude: routeAltitude * 0.96,
-    };
-
-    return [glowRoute, baseRoute];
-  });
-
-  const originPoints = valid.map((country, index) => {
-    const level = country.count >= maxCount * 0.66 ? 'high' : (country.count >= maxCount * 0.33 ? 'mid' : 'low');
-    const tooltipHtml = buildAttackTooltip(country, levelText, statusText, maxCount, false, index + 1);
-    const pointColor = level === 'high' ? 'rgba(205, 28, 28, 0.98)' : (level === 'mid' ? 'rgba(178, 33, 33, 0.95)' : 'rgba(158, 37, 37, 0.92)');
-    return {
-      lat: country.lat,
-      lon: country.lon,
-      altitude: 0.012,
-      baseRadius: clamp(pointRadiusFor(country.count) * 1.12, 0.3, 1.0),
-      color: pointColor,
-      label: `<b>${escapeHtml(country.country)}</b><br/>Origen atacante`,
-      tooltipHtml,
-    };
-  });
-
-  const spainPoint = {
-    lat: MAP_SPAIN.lat,
-    lon: MAP_SPAIN.lon,
-    altitude: 0.018,
-    baseRadius: 0.64,
-    color: 'rgba(220, 42, 42, 0.98)',
-    label: `<b>${escapeHtml(MAP_SPAIN.label)}</b><br/>Destino`,
-    tooltipHtml: `<div class="map-tip-title">${escapeHtml(MAP_SPAIN.label)}</div><div class="map-tip-row"><span>Estado</span><strong>Destino protegido</strong></div>`,
-  };
-
-  globeBasePoints = [spainPoint, ...originPoints];
-  syncGlobePointScale();
+  globeBasePoints = [];
+  globeInstance.pointsData([]);
   applyGlobeArcs([]);
   emitGlobeSpainHeartbeat();
 
-  const burstCount = clamp(Math.round(Number(liveAttackBurst) || 0), 0, 36);
-  if (!burstCount || !globeStaticRoutes.length) return;
-
-  const livePool = globeStaticRoutes.filter(route => route.mode === 'base');
-  const totalWeight = livePool.reduce((sum, route) => sum + route.count, 0) || 1;
-  const liveRoutes = [];
-  for (let i = 0; i < burstCount; i += 1) {
-    const pick = pickWeightedRoute(livePool, totalWeight);
-    if (!pick) continue;
-
-    liveRoutes.push({
-      ...pick,
-      mode: 'live',
-      color: 'rgba(255, 236, 200, 0.98)',
-      width: clamp(pick.width * 0.72, 0.6, 1.8),
-      altitude: pick.altitude + 0.028,
-    });
-  }
-
-  applyGlobeArcs(liveRoutes);
-
   if (globeLivePulseTimer) clearTimeout(globeLivePulseTimer);
-  globeLivePulseTimer = setTimeout(() => {
-    applyGlobeArcs([]);
-  }, 520);
+  globeLivePulseTimer = null;
 }
 
 function applyGlobeArcs(liveRoutes) {
   if (!globeInstance) return;
-  const allRoutes = [...globeStaticRoutes, ...(liveRoutes || [])];
+  const allRoutes = [...globeStaticRoutes].sort((a, b) => (b.count || 0) - (a.count || 0));
   globeInstance
     .arcsData(allRoutes)
-    .arcAltitude(route => route.altitude ?? (route.mode === 'live' ? 0.08 : 0.06))
-    .arcDashAnimateTime(route => route.mode === 'live' ? 260 : 0);
+    .arcAltitude(route => route.altitude ?? 0.12)
+    .arcDashAnimateTime(0);
 }
 
 function computeGlobeRouteAltitude(startLon, startLat, endLon, endLat, count, maxCount) {
