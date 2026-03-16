@@ -26,6 +26,7 @@ let currentLiveAttackBurst = 0;
 
 // ─── Arranque ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  configureDashboardLayout();
   initCharts();
   ensureDataSourcePill();
   setDataSourceStatus('loading', 'Conectando...');
@@ -33,6 +34,32 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchAndRender();
   startCountdown();
 });
+
+function configureDashboardLayout() {
+  const bannedCard = document.getElementById('stat-banned')?.closest('.stat-card');
+  if (bannedCard) bannedCard.remove();
+
+  const grid = document.querySelector('.dash-grid');
+  if (!grid) return;
+
+  const preferredOrder = [
+    '.card-events',
+    '.card-f2b',
+    '.card-worldmap',
+    '.card-usernames',
+    '.card-net',
+    '.card-heatmap',
+    '.card-countries',
+  ];
+
+  const preferredNodes = preferredOrder
+    .map(selector => grid.querySelector(selector))
+    .filter(Boolean);
+
+  const preferredSet = new Set(preferredNodes);
+  const remaining = Array.from(grid.children).filter(card => !preferredSet.has(card));
+  [...preferredNodes, ...remaining].forEach(card => grid.appendChild(card));
+}
 
 // ─── Polling ─────────────────────────────────────────────────────────────────
 function startCountdown() {
@@ -252,23 +279,42 @@ function renderFail2ban(f2b) {
   setNum('f2b-total-failed', f2b.total_failed_ever ?? 0);
 
   const container = document.getElementById('f2b-jails');
-  if (!container || !f2b.jails) return;
+  if (!container) return;
 
-  const maxBanned = Math.max(1, ...f2b.jails.map(j => j.total_banned || 0));
+  const ips = extractCurrentBannedIps(f2b);
+  if (!ips.length) {
+    container.innerHTML = '<div class="f2b-empty">No hay IPs baneadas activas o la API no aporta detalle.</div>';
+    return;
+  }
 
-  container.innerHTML = f2b.jails.map(j => {
-    const pct = Math.min(100, ((j.total_banned || 0) / maxBanned) * 100);
-    return `
-      <div class="f2b-jail">
-        <div class="f2b-jail-header">
-          <span class="f2b-jail-name">${esc(j.name)}</span>
-          <span class="f2b-jail-count">${j.currently_banned || 0} activas / ${j.total_banned || 0} total</span>
-        </div>
-        <div class="f2b-bar">
-          <div class="f2b-bar-fill" style="width:${pct.toFixed(1)}%"></div>
-        </div>
-      </div>`;
-  }).join('');
+  container.innerHTML = ips.map((ip, index) => `
+    <div class="f2b-ip-row">
+      <span class="f2b-ip-rank">#${index + 1}</span>
+      <span class="f2b-ip mono">${esc(ip)}</span>
+    </div>
+  `).join('');
+}
+
+function extractCurrentBannedIps(f2b) {
+  const ips = new Set();
+  const addFrom = value => {
+    if (!Array.isArray(value)) return;
+    value.forEach(entry => {
+      const ip = String(entry?.ip ?? entry ?? '').trim();
+      if (ip) ips.add(ip);
+    });
+  };
+
+  addFrom(f2b.currently_banned_ips);
+  addFrom(f2b.banned_ips);
+  (f2b.jails || []).forEach(jail => {
+    addFrom(jail.currently_banned_ips);
+    addFrom(jail.current_banned_ips);
+    addFrom(jail.banned_ips);
+    addFrom(jail.ips);
+  });
+
+  return Array.from(ips).slice(0, 150);
 }
 
 // ─── Gauges (SVG) ─────────────────────────────────────────────────────────────
@@ -366,33 +412,41 @@ const CONN_TYPE_META = {
 
 function renderConnectionDetail(detail) {
   const list = document.getElementById('conn-detail-list');
-  const wrap = document.getElementById('conn-detail-wrap');
   if (!list) return;
 
-  if (!detail?.length) {
-    list.innerHTML = '<div class="conn-none">Sin conexiones establecidas ahora mismo</div>';
+  const established = Array.isArray(detail) ? detail : [];
+  if (!established.length) {
+    list.innerHTML = '<div class="conn-none conn-ok">Verificado: no hay intrusiones detectadas.</div>';
     return;
   }
 
-  list.innerHTML = detail.map(c => {
-    const meta  = CONN_TYPE_META[c.type] || CONN_TYPE_META.unknown;
-    const locCls = c.location === 'LAN' ? 'conn-loc-lan' : 'conn-loc-inet';
-    const dirArrow = c.direction === 'inbound' ? '↙ entrante' : '↗ saliente';
-    const desc  = c.description || c.service || c.process || '—';
-    const remote = c.remote_addr || '—';
-    const proc  = c.process ? `<span class="conn-proc">${esc(c.process)}</span>` : '';
-    return `<div class="conn-row ${meta.cls}">
-      <span class="conn-icon" title="${esc(meta.label)}">${meta.icon}</span>
-      <div class="conn-main">
-        <span class="conn-desc">${esc(desc)}</span>${proc}
-        <span class="conn-remote mono">${esc(remote)}</span>
-      </div>
-      <div class="conn-tags">
-        <span class="conn-loc ${locCls}">${esc(c.location)}</span>
-        <span class="conn-dir">${dirArrow}</span>
-      </div>
-    </div>`;
-  }).join('');
+  const suspicious = established.filter(isPotentialIntrusionConn);
+  if (!suspicious.length) {
+    list.innerHTML = `<div class="conn-none conn-ok">Verificado: no hay intrusiones detectadas (${established.length} conexiones legítimas).</div>`;
+    return;
+  }
+
+  const suspects = Array.from(new Set(
+    suspicious.map(conn => String(conn.remote_addr || '').trim()).filter(Boolean)
+  )).slice(0, 4);
+
+  list.innerHTML = `
+    <div class="conn-none conn-alert">
+      Posibles intrusiones detectadas: ${suspicious.length}${suspects.length ? ` · ${suspects.map(esc).join(', ')}` : ''}
+    </div>
+  `;
+}
+
+function isPotentialIntrusionConn(conn) {
+  const type = String(conn?.type || '').toLowerCase();
+  const location = String(conn?.location || '').toUpperCase();
+  const direction = String(conn?.direction || '').toLowerCase();
+
+  if (type === 'unknown') return true;
+  if (location === 'INTERNET' && direction === 'inbound' && !['web', 'self', 'vscode'].includes(type)) {
+    return true;
+  }
+  return false;
 }
 
 // ─── Top Attackers ────────────────────────────────────────────────────────────

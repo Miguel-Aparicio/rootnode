@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="css/styles.css?v=13"/>
+  <link rel="stylesheet" href="css/styles.css?v=17"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
@@ -62,10 +62,6 @@
     <div class="stat-val" id="stat-ips">—</div>
     <div class="stat-lbl">IPs atacantes 24h</div>
   </div>
-  <div class="stat-card" data-color="cyan">
-    <div class="stat-val" id="stat-banned">—</div>
-    <div class="stat-lbl">IPs baneadas ahora</div>
-  </div>
   <div class="stat-card" data-color="green">
     <div class="stat-val" id="stat-uptime">—</div>
     <div class="stat-lbl">Tiempo activo</div>
@@ -102,6 +98,7 @@
       <div class="f2b-big" id="f2b-banned">—</div>
       <div class="f2b-sub">IPs baneadas ahora</div>
     </div>
+    <div class="f2b-list-title">Listado de IPs baneadas (tiempo real)</div>
     <div id="f2b-jails" class="f2b-jails"></div>
     <div class="f2b-totals">
       <div><span class="lbl">Total baneadas:</span> <span class="mono" id="f2b-total-banned">—</span></div>
@@ -285,8 +282,8 @@
     </div>
     <div class="conn-detail-wrap" id="conn-detail-wrap">
       <div class="conn-detail-title">
-        Desglose de conexiones establecidas
-        <span class="conn-detail-hint">(100% verificadas — no hay intrusiones)</span>
+        Estado de intrusión
+        <span class="conn-detail-hint">Monitorización activa</span>
       </div>
       <div id="conn-detail-list" class="conn-detail-list"></div>
     </div>
@@ -368,7 +365,7 @@
     <div class="card-hdr">
       <div class="card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-        Eventos de Seguridad Recientes
+        FEED de ataques en tiempo real
       </div>
       <span class="lbl" id="events-updated">—</span>
     </div>
@@ -390,7 +387,7 @@
 
 </main>
 
-<script src="js/charts.js?v=33"></script>
-<script src="js/app.js?v=33"></script>
+<script src="js/charts.js?v=34"></script>
+<script src="js/app.js?v=34"></script>
 </body>
 </html>
