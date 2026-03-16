@@ -354,10 +354,10 @@ function initWorldGlobe(container) {
     .arcCircularResolution(8)
     .arcColor(route => route.color)
     .arcStroke(route => route.width)
-    .arcDashLength(1)
-    .arcDashGap(0)
-    .arcDashInitialGap(0)
-    .arcDashAnimateTime(0)
+    .arcDashLength(route => route.mode === 'pulse' ? 0.042 : 1)
+    .arcDashGap(route => route.mode === 'pulse' ? 0.958 : 0)
+    .arcDashInitialGap(route => route.mode === 'pulse' ? (route.pulseOffset ?? 0) : 0)
+    .arcDashAnimateTime(route => route.mode === 'pulse' ? 5200 : 0)
     .arcLabel(route => route.label)
     .pointLat(point => point.lat)
     .pointLng(point => point.lon)
@@ -702,6 +702,7 @@ function updateWorldGlobe(countries, liveAttackBurst = 0) {
     color: 'rgba(220, 42, 42, 0.95)',
     width: clamp(routeWidth(country.count), 0.18, 0.62),
     altitude: computeGlobeRouteAltitude(country.lon, country.lat, MAP_SPAIN.lon, MAP_SPAIN.lat, country.count, maxCount),
+    pulseOffset: valid.length > 0 ? (index / valid.length) : 0,
     label: `<b>${escapeHtml(country.country)}</b><br/>Intentos: ${country.count}`,
     tooltipHtml: buildAttackTooltip(country, levelText, statusText, maxCount, false, index + 1),
   }));
@@ -717,11 +718,34 @@ function updateWorldGlobe(countries, liveAttackBurst = 0) {
 
 function applyGlobeArcs(liveRoutes) {
   if (!globeInstance) return;
-  const allRoutes = [...globeStaticRoutes].sort((a, b) => (b.count || 0) - (a.count || 0));
+  const baseRoutes = [...globeStaticRoutes].sort((a, b) => (b.count || 0) - (a.count || 0));
+  const pulseRoutes = baseRoutes.flatMap(route => {
+    const baseOffset = Number(route.pulseOffset ?? 0);
+    return [
+      {
+        ...route,
+        mode: 'pulse',
+        color: 'rgba(255, 186, 186, 0.78)',
+        width: clamp(route.width * 0.24, 0.038, 0.098),
+        altitude: clamp((route.altitude ?? 0.12) + 0.01, 0.08, 0.34),
+        pulseOffset: baseOffset,
+      },
+      {
+        ...route,
+        mode: 'pulse',
+        color: 'rgba(255, 168, 168, 0.5)',
+        width: clamp(route.width * 0.2, 0.032, 0.082),
+        altitude: clamp((route.altitude ?? 0.12) + 0.012, 0.08, 0.34),
+        pulseOffset: (baseOffset + 0.48) % 1,
+      },
+    ];
+  });
+  const allRoutes = [...baseRoutes, ...pulseRoutes];
+
   globeInstance
     .arcsData(allRoutes)
     .arcAltitude(route => route.altitude ?? 0.12)
-    .arcDashAnimateTime(0);
+    .arcDashAnimateTime(route => route.mode === 'pulse' ? 5200 : 0);
 }
 
 function computeGlobeRouteAltitude(startLon, startLat, endLon, endLat, count, maxCount) {
