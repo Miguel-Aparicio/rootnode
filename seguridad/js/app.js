@@ -10,7 +10,7 @@ const API_URL_CANDIDATES = [
   'http://127.0.0.1:5050/',
   'http://127.0.0.1:5050/seguridad/api/',
 ];
-const POLL_MS      = 10_000;   // 10 segundos
+const POLL_MS      = 5_000;   // 5 segundos
 const API_TRY_TIMEOUT_MS = 1600;
 const STORAGE_ACTIVE_API = 'securepi.activeApiUrl';
 const STORAGE_LAST_DATA = 'securepi.lastPayload';
@@ -22,7 +22,7 @@ let countdownTimer = null;
 let isLoading      = false;
 let activeApiUrl   = null;
 let lastFailed24h  = null;
-let currentLiveAttackBurst = 0;
+let currentLiveAttackBursts = [];
 let lastEventTs    = null;
 let f2bCountdownTimer = null;
 
@@ -270,19 +270,37 @@ function renderSSH(ssh) {
 
 function computeLiveBurst(events) {
   if (!Array.isArray(events) || !events.length) {
-    currentLiveAttackBurst = 0;
+    currentLiveAttackBursts = [];
     return;
   }
   const newestTs = events[0]?.ts ? new Date(events[0].ts).getTime() : 0;
   if (lastEventTs === null) {
-    currentLiveAttackBurst = 0;
+    currentLiveAttackBursts = [];
   } else if (newestTs > lastEventTs) {
-    currentLiveAttackBurst = events.filter(ev => {
+    const newEvents = events.filter(ev => {
       const t = ev?.ts ? new Date(ev.ts).getTime() : 0;
       return t > lastEventTs;
-    }).length;
+    });
+
+    const seen = new Set();
+    currentLiveAttackBursts = newEvents
+      .filter(ev => !/^F2B\s+(Ban|Unban)/i.test(String(ev?.label || '')))
+      .map(ev => ({
+        ip: String(ev?.ip || ''),
+        country: String(ev?.country || ''),
+        lat: Number(ev?.lat),
+        lon: Number(ev?.lon),
+      }))
+      .filter(origin => Number.isFinite(origin.lat) && Number.isFinite(origin.lon))
+      .filter(origin => {
+        const key = `${origin.country}|${origin.lat.toFixed(3)}|${origin.lon.toFixed(3)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 1);
   } else {
-    currentLiveAttackBurst = 0;
+    currentLiveAttackBursts = [];
   }
   if (newestTs > 0) lastEventTs = newestTs;
 }
@@ -816,8 +834,8 @@ function renderUpdates(upd) {
 // ─── Mapa de países ───────────────────────────────────────────────────────────
 function renderCountries(countries) {
   // Update D3 map bubbles
-  if (typeof updateWorldMap === 'function') updateWorldMap(countries || [], currentLiveAttackBurst);
-  currentLiveAttackBurst = 0;
+  if (typeof updateWorldMap === 'function') updateWorldMap(countries || [], currentLiveAttackBursts);
+  currentLiveAttackBursts = [];
 
   // Update country count badge
   const cnt = (countries || []).length;

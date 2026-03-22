@@ -15,6 +15,7 @@ const WORLD_TOPO = '/seguridad/js/countries-110m.json';
 const MAP_W = 960;
 const MAP_H = 460;
 const MAP_SPAIN = { lon: -3.7038, lat: 40.4168, label: 'Raspberry (España)' };
+const GLOBE_PULSE_LOOP_MS = 5200;
 const EMPTY_HEATMAP = Array.from({ length: 7 }, () => Array(24).fill(0));
 const COUNTRY_KEY_ALIASES = {
   theunitedstatesofamerica: 'unitedstates',
@@ -42,7 +43,7 @@ let mapPath = null;
 let mapZoom = null;
 let mapReady = false;
 let mapPendingCountries = null;
-let mapPendingBurst = 0;
+let mapPendingBurst = [];
 let mapSpainXY = null;
 let mapTooltipEl = null;
 let mapMode = 'd3';
@@ -50,12 +51,15 @@ let globeInstance = null;
 let globeContainer = null;
 let globeStaticRoutes = [];
 let globeLivePulseTimer = null;
+let globeLiveSequenceTimers = [];
 let globePointerEvent = null;
 let globeCountryFeatures = [];
 let globeAttacksByCountryKey = new Map();
 let globeMaxAttackCount = 1;
 let globeBasePoints = [];
 let globeLastAltitude = 1.9;
+let globeRouteSignature = '';
+let globeHeartbeatReady = false;
 
 function initCharts() {
   createSSHChart();
@@ -361,7 +365,7 @@ function initWorldGlobe(container) {
       ? 0.958
       : (String(route.mode || '').startsWith('live-burst') ? (route.dashGap ?? 0.94) : 0))
     .arcDashInitialGap(route => (route.mode === 'pulse' || String(route.mode || '').startsWith('live-burst')) ? (route.pulseOffset ?? 0) : 0)
-    .arcDashAnimateTime(route => route.mode === 'pulse' ? 5200 : (String(route.mode || '').startsWith('live-burst') ? 650 : 0))
+    .arcDashAnimateTime(route => route.mode === 'pulse' ? 5200 : (String(route.mode || '').startsWith('live-burst') ? 520 : 0))
     .arcLabel(route => route.label)
     .pointLat(point => point.lat)
     .pointLng(point => point.lon)
@@ -490,7 +494,7 @@ function bindGlobeResize() {
   });
 }
 
-function updateWorldMap(countries, liveAttackBurst = 0) {
+function updateWorldMap(countries, liveAttackBurst = []) {
   if (mapMode === 'globe') {
     updateWorldGlobe(countries, liveAttackBurst);
     return;
@@ -498,7 +502,7 @@ function updateWorldMap(countries, liveAttackBurst = 0) {
 
   if (!mapReady || !mapViewport || !mapProjection) {
     mapPendingCountries = countries;
-    mapPendingBurst = liveAttackBurst;
+    mapPendingBurst = Array.isArray(liveAttackBurst) ? liveAttackBurst : [];
     return;
   }
 
@@ -555,6 +559,7 @@ function updateWorldMap(countries, liveAttackBurst = 0) {
     });
 
   const routeMeta = [];
+  const routeMetaByCountry = new Map();
 
   valid.forEach((country, index) => {
     const origin = mapProjection([country.lon, country.lat]);
@@ -591,13 +596,18 @@ function updateWorldMap(countries, liveAttackBurst = 0) {
       .on('mousemove', event => placeMapTooltip(event))
       .on('mouseleave', hideMapTooltip);
 
-    routeMeta.push({
+    const route = {
+      country: country.country,
+      lat: country.lat,
+      lon: country.lon,
       routePath,
       routeLength: cablePath.node()?.getTotalLength() || 1,
       baseWidth,
       level,
       count: country.count,
-    });
+    };
+    routeMeta.push(route);
+    routeMetaByCountry.set(canonicalCountryKey(country.country), route);
 
     originsLayer.append('circle')
       .attr('class', `map-origin origin-${level}`)
@@ -609,43 +619,22 @@ function updateWorldMap(countries, liveAttackBurst = 0) {
       .on('mouseleave', hideMapTooltip);
   });
 
-  const burstCount = clamp(Math.round(Number(liveAttackBurst) || 0), 0, 36);
-  if (burstCount > 0 && routeMeta.length > 0) {
-    const totalWeight = routeMeta.reduce((sum, route) => sum + route.count, 0) || 1;
-    for (let i = 0; i < burstCount; i += 1) {
-      const pick = pickWeightedRoute(routeMeta, totalWeight);
-      if (!pick) continue;
-
-      const pulseLength = clamp(pick.routeLength * 0.11, 18, 70);
-      const pulseTrace = routesLayer.append('path')
-        .attr('class', `map-route-pulse-trace pulse-${pick.level}`)
-        .attr('d', pick.routePath)
-        .attr('stroke-width', clamp(pick.baseWidth * 0.65, 0.95, 2.2))
-        .attr('stroke-dasharray', `${pulseLength} ${Math.max(pick.routeLength - pulseLength, 1)}`)
-        .attr('stroke-dashoffset', pick.routeLength)
-        .attr('opacity', 0);
-
-      pulseTrace.append('animate')
-        .attr('attributeName', 'opacity')
-        .attr('values', '0;1;0')
-        .attr('dur', '0.22s')
-        .attr('begin', `${(i * 0.03).toFixed(3)}s`)
-        .attr('repeatCount', '1');
-
-      pulseTrace.append('animate')
-        .attr('attributeName', 'stroke-dashoffset')
-        .attr('values', `${pick.routeLength};0`)
-        .attr('dur', `${clamp(0.18 - (pick.count / maxCount) * 0.08, 0.08, 0.18)}s`)
-        .attr('begin', `${(i * 0.03).toFixed(3)}s`)
-        .attr('repeatCount', '1');
-    }
+  const liveBursts = Array.isArray(liveAttackBurst) ? liveAttackBurst : [];
+  if (liveBursts.length > 0) {
+    liveBursts.forEach(burst => {
+      const route = resolveMapBurstRoute(burst, routeMetaByCountry, lineWidth);
+      if (!route) return;
+      for (let flashIndex = 0; flashIndex < 3; flashIndex += 1) {
+        appendMapBurstFlash(routesLayer, route, flashIndex, maxCount);
+      }
+    });
   }
 }
 
-function updateWorldGlobe(countries, liveAttackBurst = 0) {
+function updateWorldGlobe(countries, liveAttackBurst = []) {
   if (!mapReady || !globeInstance) {
     mapPendingCountries = countries;
-    mapPendingBurst = liveAttackBurst;
+    mapPendingBurst = Array.isArray(liveAttackBurst) ? liveAttackBurst : [];
     return;
   }
 
@@ -668,6 +657,11 @@ function updateWorldGlobe(countries, liveAttackBurst = 0) {
   valid.forEach(country => {
     globeAttacksByCountryKey.set(canonicalCountryKey(country.country), country);
   });
+
+  const nextRouteSignature = valid
+    .map(country => `${canonicalCountryKey(country.country)}:${country.count}:${Number(country.lat).toFixed(2)}:${Number(country.lon).toFixed(2)}`)
+    .join('|');
+  const routesChanged = nextRouteSignature !== globeRouteSignature;
 
   if (globeCountryFeatures.length) {
     globeInstance
@@ -694,88 +688,203 @@ function updateWorldGlobe(countries, liveAttackBurst = 0) {
       });
   }
 
-  const routeWidth = count => 0.18 + Math.sqrt(count / maxCount) * 0.38;
-  globeStaticRoutes = valid.map((country, index) => ({
-    mode: 'base',
-    country: country.country,
-    count: country.count,
-    startLat: country.lat,
-    startLng: country.lon,
+  if (routesChanged) {
+    const routeWidth = count => 0.18 + Math.sqrt(count / maxCount) * 0.38;
+    globeStaticRoutes = valid.map((country, index) => ({
+      mode: 'base',
+      country: country.country,
+      count: country.count,
+      startLat: country.lat,
+      startLng: country.lon,
+      endLat: MAP_SPAIN.lat,
+      endLng: MAP_SPAIN.lon,
+      color: 'rgba(220, 42, 42, 0.95)',
+      width: clamp(routeWidth(country.count), 0.18, 0.62),
+      altitude: computeGlobeRouteAltitude(country.lon, country.lat, MAP_SPAIN.lon, MAP_SPAIN.lat, country.count, maxCount),
+      pulseOffset: valid.length > 0 ? (index / valid.length) : 0,
+      label: `<b>${escapeHtml(country.country)}</b><br/>Intentos: ${country.count}`,
+      tooltipHtml: buildAttackTooltip(country, levelText, statusText, maxCount, false, index + 1),
+    }));
+
+    globeRouteSignature = nextRouteSignature;
+    globeBasePoints = [];
+    globeInstance.pointsData([]);
+    clearGlobeBurstSequence();
+    applyGlobeArcs([]);
+  }
+
+  emitGlobeSpainHeartbeat();
+
+  const liveBursts = Array.isArray(liveAttackBurst) ? liveAttackBurst : [];
+  if (liveBursts.length > 0 && globeStaticRoutes.length > 0) {
+    clearGlobeBurstSequence();
+    const resolvedRoutes = liveBursts
+      .map(resolveGlobeBurstRoute)
+      .filter(Boolean)
+      .slice(0, 6);
+
+    if (resolvedRoutes.length) {
+      [0, 180, 360].forEach((delay, flashIndex) => {
+        const timer = setTimeout(() => {
+          const flashRoutes = [];
+          resolvedRoutes.forEach(route => {
+            flashRoutes.push(...buildGlobeBurstLayers(route, flashIndex));
+          });
+          applyGlobeArcs(flashRoutes);
+        }, delay);
+        globeLiveSequenceTimers.push(timer);
+      });
+
+      globeLivePulseTimer = setTimeout(() => {
+        applyGlobeArcs([]);
+        globeLivePulseTimer = null;
+        globeLiveSequenceTimers = [];
+      }, 1700);
+    }
+  }
+}
+
+function resolveMapBurstRoute(burst, routeMetaByCountry, lineWidth) {
+  const countryKey = canonicalCountryKey(burst?.country || '');
+  if (countryKey && routeMetaByCountry.has(countryKey)) {
+    return routeMetaByCountry.get(countryKey);
+  }
+
+  if (!mapProjection || !mapSpainXY || !Number.isFinite(burst?.lon) || !Number.isFinite(burst?.lat)) return null;
+  const origin = mapProjection([burst.lon, burst.lat]);
+  if (!origin) return null;
+
+  const [x, y] = origin;
+  const [sx, sy] = mapSpainXY;
+  const dx = sx - x;
+  const dy = sy - y;
+  const distance = Math.hypot(dx, dy);
+  const invDistance = distance > 0 ? 1 / distance : 0;
+  const nx = -dy * invDistance;
+  const curve = clamp(distance * 0.46, 58, 220);
+  const cx = x + dx * 0.5 + nx * curve * 0.62;
+  const cy = y + dy * 0.5 - curve * 1.08;
+  const routePath = `M${x},${y} Q${cx},${cy} ${sx},${sy}`;
+
+  return {
+    country: burst.country || burst.ip || 'Origen',
+    routePath,
+    routeLength: Math.max(distance * 1.2, 1),
+    baseWidth: clamp(lineWidth(1), 1.4, 3.2),
+    level: 'high',
+    count: 1,
+  };
+}
+
+function appendMapBurstFlash(routesLayer, route, flashIndex, maxCount) {
+  const pulseLength = clamp(route.routeLength * 0.22, 36, 140);
+  const begin = `${(flashIndex * 0.42).toFixed(3)}s`;
+  const travelDur = `${clamp(0.34 - ((route.count || 1) / Math.max(maxCount, 1)) * 0.06, 0.24, 0.34)}s`;
+  const fadeDur = '0.42s';
+
+  const glow = routesLayer.append('path')
+    .attr('class', 'map-route-pulse-glow')
+    .attr('d', route.routePath)
+    .attr('stroke-width', clamp(route.baseWidth * 2.9, 4.6, 10.5))
+    .attr('stroke-dasharray', `${pulseLength} ${Math.max(route.routeLength - pulseLength, 1)}`)
+    .attr('stroke-dashoffset', route.routeLength)
+    .attr('opacity', 0);
+
+  glow.append('animate')
+    .attr('attributeName', 'opacity')
+    .attr('values', '0;1;1;0')
+    .attr('dur', fadeDur)
+    .attr('begin', begin)
+    .attr('repeatCount', '1');
+
+  glow.append('animate')
+    .attr('attributeName', 'stroke-dashoffset')
+    .attr('values', `${route.routeLength};0`)
+    .attr('dur', travelDur)
+    .attr('begin', begin)
+    .attr('repeatCount', '1');
+
+  const core = routesLayer.append('path')
+    .attr('class', 'map-route-pulse-core')
+    .attr('d', route.routePath)
+    .attr('stroke-width', clamp(route.baseWidth * 1.2, 2, 4.8))
+    .attr('stroke-dasharray', `${pulseLength} ${Math.max(route.routeLength - pulseLength, 1)}`)
+    .attr('stroke-dashoffset', route.routeLength)
+    .attr('opacity', 0);
+
+  core.append('animate')
+    .attr('attributeName', 'opacity')
+    .attr('values', '0;1;1;0')
+    .attr('dur', fadeDur)
+    .attr('begin', begin)
+    .attr('repeatCount', '1');
+
+  core.append('animate')
+    .attr('attributeName', 'stroke-dashoffset')
+    .attr('values', `${route.routeLength};0`)
+    .attr('dur', travelDur)
+    .attr('begin', begin)
+    .attr('repeatCount', '1');
+}
+
+function clearGlobeBurstSequence() {
+  if (globeLivePulseTimer) clearTimeout(globeLivePulseTimer);
+  globeLivePulseTimer = null;
+  globeLiveSequenceTimers.forEach(timer => clearTimeout(timer));
+  globeLiveSequenceTimers = [];
+}
+
+function resolveGlobeBurstRoute(burst) {
+  const countryKey = canonicalCountryKey(burst?.country || '');
+  if (countryKey) {
+    const existing = globeStaticRoutes.find(route => canonicalCountryKey(route.country) === countryKey);
+    if (existing) return existing;
+  }
+  if (!Number.isFinite(burst?.lat) || !Number.isFinite(burst?.lon)) return null;
+  return {
+    country: burst.country || burst.ip || 'Origen',
+    count: 1,
+    startLat: burst.lat,
+    startLng: burst.lon,
     endLat: MAP_SPAIN.lat,
     endLng: MAP_SPAIN.lon,
     color: 'rgba(220, 42, 42, 0.95)',
-    width: clamp(routeWidth(country.count), 0.18, 0.62),
-    altitude: computeGlobeRouteAltitude(country.lon, country.lat, MAP_SPAIN.lon, MAP_SPAIN.lat, country.count, maxCount),
-    pulseOffset: valid.length > 0 ? (index / valid.length) : 0,
-    label: `<b>${escapeHtml(country.country)}</b><br/>Intentos: ${country.count}`,
-    tooltipHtml: buildAttackTooltip(country, levelText, statusText, maxCount, false, index + 1),
-  }));
+    width: 0.34,
+    altitude: computeGlobeRouteAltitude(burst.lon, burst.lat, MAP_SPAIN.lon, MAP_SPAIN.lat, 1, 1),
+    pulseOffset: 0,
+  };
+}
 
-  globeBasePoints = [];
-  globeInstance.pointsData([]);
-  applyGlobeArcs([]);
-  emitGlobeSpainHeartbeat();
-
-  if (globeLivePulseTimer) clearTimeout(globeLivePulseTimer);
-  globeLivePulseTimer = null;
-
-  const burstCount = clamp(Math.round(Number(liveAttackBurst) || 0), 0, 18);
-  if (burstCount > 0 && globeStaticRoutes.length > 0) {
-    const totalWeight = globeStaticRoutes.reduce((sum, route) => sum + (route.count || 0), 0) || 1;
-    const liveRoutes = [];
-    for (let i = 0; i < burstCount; i += 1) {
-      const pick = pickWeightedRoute(globeStaticRoutes, totalWeight);
-      if (!pick) continue;
-
-      const headOffset = (i / Math.max(burstCount, 1)) % 1;
-      const trail1Offset = ((headOffset - 0.022) % 1 + 1) % 1;
-      const trail2Offset = ((headOffset - 0.046) % 1 + 1) % 1;
-
-      liveRoutes.push(
-        {
-          ...pick,
-          mode: 'live-burst-head',
-          color: 'rgba(255, 255, 200, 1)',
-          width: clamp(pick.width * 0.55, 0.14, 0.34),
-          altitude: clamp((pick.altitude ?? 0.12) + 0.016, 0.08, 0.34),
-          pulseOffset: headOffset,
-          dashLength: 0.06,
-          dashGap: 0.94,
-        },
-        {
-          ...pick,
-          mode: 'live-burst-trail-1',
-          color: 'rgba(255, 160, 80, 0.85)',
-          width: clamp(pick.width * 0.42, 0.11, 0.28),
-          altitude: clamp((pick.altitude ?? 0.12) + 0.014, 0.08, 0.34),
-          pulseOffset: trail1Offset,
-          dashLength: 0.1,
-          dashGap: 0.9,
-        },
-        {
-          ...pick,
-          mode: 'live-burst-trail-2',
-          color: 'rgba(255, 80, 80, 0.45)',
-          width: clamp(pick.width * 0.32, 0.09, 0.22),
-          altitude: clamp((pick.altitude ?? 0.12) + 0.012, 0.08, 0.34),
-          pulseOffset: trail2Offset,
-          dashLength: 0.14,
-          dashGap: 0.86,
-        }
-      );
-    }
-
-    applyGlobeArcs(liveRoutes);
-    globeLivePulseTimer = setTimeout(() => {
-      applyGlobeArcs([]);
-      globeLivePulseTimer = null;
-    }, 1400);
-  }
+function buildGlobeBurstLayers(route, flashIndex) {
+  const widthBoost = 1 + (flashIndex * 0.02);
+  return [
+    {
+      ...route,
+      mode: 'live-burst-glow',
+      color: 'rgba(255, 205, 120, 0.38)',
+      width: clamp(route.width * 1.9 * widthBoost, 0.42, 1.08),
+      altitude: clamp((route.altitude ?? 0.12) + 0.02, 0.08, 0.34),
+      pulseOffset: 0,
+      dashLength: 0.16,
+      dashGap: 0.84,
+    },
+    {
+      ...route,
+      mode: 'live-burst-core',
+      color: 'rgba(255, 255, 245, 1)',
+      width: clamp(route.width * 0.82 * widthBoost, 0.24, 0.58),
+      altitude: clamp((route.altitude ?? 0.12) + 0.016, 0.08, 0.34),
+      pulseOffset: 0,
+      dashLength: 0.12,
+      dashGap: 0.88,
+    },
+  ];
 }
 
 function applyGlobeArcs(liveRoutes) {
   if (!globeInstance) return;
   const baseRoutes = [...globeStaticRoutes].sort((a, b) => (b.count || 0) - (a.count || 0));
+  const pulsePhase = ((Date.now() % GLOBE_PULSE_LOOP_MS) / GLOBE_PULSE_LOOP_MS);
   const pulseRoutes = baseRoutes.flatMap(route => {
     const baseOffset = Number(route.pulseOffset ?? 0);
     return [
@@ -785,7 +894,7 @@ function applyGlobeArcs(liveRoutes) {
         color: 'rgba(255, 186, 186, 0.78)',
         width: clamp(route.width * 0.24, 0.038, 0.098),
         altitude: clamp((route.altitude ?? 0.12) + 0.01, 0.08, 0.34),
-        pulseOffset: baseOffset,
+        pulseOffset: (baseOffset + pulsePhase) % 1,
       },
       {
         ...route,
@@ -793,7 +902,7 @@ function applyGlobeArcs(liveRoutes) {
         color: 'rgba(255, 168, 168, 0.5)',
         width: clamp(route.width * 0.2, 0.032, 0.082),
         altitude: clamp((route.altitude ?? 0.12) + 0.012, 0.08, 0.34),
-        pulseOffset: (baseOffset + 0.48) % 1,
+        pulseOffset: (baseOffset + 0.48 + pulsePhase) % 1,
       },
     ];
   });
@@ -803,7 +912,7 @@ function applyGlobeArcs(liveRoutes) {
   globeInstance
     .arcsData(allRoutes)
     .arcAltitude(route => route.altitude ?? 0.12)
-    .arcDashAnimateTime(route => route.mode === 'pulse' ? 5200 : (route.mode === 'live-burst' ? 650 : 0));
+    .arcDashAnimateTime(route => route.mode === 'pulse' ? GLOBE_PULSE_LOOP_MS : (String(route.mode || '').startsWith('live-burst') ? 520 : 0));
 }
 
 function computeGlobeRouteAltitude(startLon, startLat, endLon, endLat, count, maxCount) {
@@ -834,7 +943,7 @@ function syncGlobePointScale() {
 }
 
 function emitGlobeSpainHeartbeat() {
-  if (!globeInstance) return;
+  if (!globeInstance || globeHeartbeatReady) return;
 
   globeInstance.ringsData([
     {
@@ -850,6 +959,8 @@ function emitGlobeSpainHeartbeat() {
     .ringMaxRadius(ring => ring.maxR)
     .ringPropagationSpeed(ring => ring.propagationSpeed)
     .ringRepeatPeriod(ring => ring.repeatPeriod);
+
+  globeHeartbeatReady = true;
 }
 
 function pickWeightedRoute(routes, totalWeight) {
