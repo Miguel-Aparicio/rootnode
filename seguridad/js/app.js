@@ -7,8 +7,7 @@
 const API_URL_CANDIDATES = [
   '/seguridad/api/',
   '/api/seguridad/',
-  'http://127.0.0.1:5050/',
-  'http://127.0.0.1:5050/seguridad/api/',
+  '/',
 ];
 const POLL_MS      = 5_000;   // 5 segundos
 const API_TRY_TIMEOUT_MS = 1600;
@@ -132,18 +131,7 @@ async function fetchDashboardData() {
 }
 
 function getApiCandidates() {
-  const protocol = window.location.protocol || 'http:';
-  const host = window.location.hostname || '127.0.0.1';
-  const dynamicBase = `${protocol}//${host}:5050`;
   const rememberedApi = localStorage.getItem(STORAGE_ACTIVE_API);
-
-  const dynamicCandidates = [
-    '/seguridad/api/',
-    '/api/seguridad/',
-    '/',
-    `${dynamicBase}/`,
-    `${dynamicBase}/seguridad/api/`,
-  ];
 
   const unique = [];
   const add = value => {
@@ -151,14 +139,16 @@ function getApiCandidates() {
     unique.push(value);
   };
 
-  add(rememberedApi);
-  if (activeApiUrl) add(activeApiUrl);
-  dynamicCandidates.forEach(add);
-  API_URL_CANDIDATES.forEach(add);
+  const addRelative = value => {
+    if (typeof value !== 'string') return;
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('/')) return;
+    add(trimmed);
+  };
 
-  if (window.location.port === '5050') {
-    add('/');
-  }
+  addRelative(rememberedApi);
+  if (activeApiUrl) addRelative(activeApiUrl);
+  API_URL_CANDIDATES.forEach(addRelative);
 
   return unique;
 }
