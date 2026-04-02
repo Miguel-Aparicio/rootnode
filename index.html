@@ -190,7 +190,8 @@
       const navMark = document.querySelector('.nav__logo-mark');
       if (!morph || !navMark) return;
 
-      const HERO_SIZE  = 140;  // px — large centered logo
+      const isMobile  = () => window.innerWidth <= 640;
+      const HERO_SIZE  = 140;  // px — large centered logo (desktop)
       const NAV_SIZE   = 32;   // px — nav logo mark
       const SCROLL_END = 420;  // px of scroll to complete transition
 
@@ -210,13 +211,14 @@
         const navCY = nr.top  + nr.height / 2;
 
         /* Source: centered on screen, at ~38% from top */
+        const heroSize = isMobile() ? 88 : HERO_SIZE;
         const heroCX = window.innerWidth  * 0.5;
-        const heroCY = window.innerHeight * 0.38;
+        const heroCY = isMobile() ? window.innerHeight * 0.22 : window.innerHeight * 0.38;
 
-        const size = lerp(HERO_SIZE, NAV_SIZE, progress);
+        const size = lerp(heroSize, NAV_SIZE, progress);
         const cx   = lerp(heroCX,   navCX,    progress);
         const cy   = lerp(heroCY,   navCY,    progress);
-        const fs   = lerp(3.1,     0.68,     progress);
+        const fs   = lerp(isMobile() ? 2.0 : 3.1, 0.68, progress);
 
         morph.style.width    = size + 'px';
         morph.style.height   = size + 'px';
