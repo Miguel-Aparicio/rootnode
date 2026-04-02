@@ -187,6 +187,28 @@ body {
   flex-shrink: 0;
 }
 
+/* ── Morph Logo (JS-driven) ── */
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0);     }
+  50%       { transform: translateY(-12px); }
+}
+
+.logo-morph {
+  position: fixed;
+  display: grid;
+  place-items: center;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: var(--color-accent);
+  color: #1a0e2a;
+  border-radius: 6px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 200;
+  animation: logoFloat 3.6s ease-in-out infinite;
+}
+
 .nav__logo-mark {
   width: 32px;
   height: 32px;
@@ -199,6 +221,7 @@ body {
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  opacity: 0; /* controlled by morph JS */
 }
 
 .nav__logo-name {
@@ -279,7 +302,8 @@ body {
 
 /* ── Hero ── */
 .hero {
-  padding: var(--sp-16) 0 var(--sp-12);
+  /* Large top padding to keep text below the floating logo */
+  padding: clamp(280px, 54vh, 520px) 0 var(--sp-16);
 }
 
 .hero__wrap {
