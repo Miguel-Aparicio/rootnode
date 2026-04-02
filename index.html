@@ -3,290 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>rootnode</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 2rem;
-    }
-
-    /* ── Header ── */
-    header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      max-width: 1100px;
-      width: 100%;
-      margin: 0 auto 2.5rem;
-      padding-bottom: 1.5rem;
-      border-bottom: 1px solid #1e293b;
-    }
-    header .logo { font-size: 2rem; }
-    header h1 {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: #f1f5f9;
-    }
-    header .domain {
-      font-size: 0.85rem;
-      color: #38bdf8;
-      font-weight: 500;
-    }
-
-    /* ── Section label ── */
-    .section-label {
-      max-width: 1100px;
-      width: 100%;
-      margin: 0 auto 1rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: #475569;
-    }
-
-    /* ── App grid ── */
-    .app-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 1rem;
-      max-width: 1100px;
-      width: 100%;
-      margin: 0 auto;
-    }
-
-    /* ── App card ── */
-    .app-card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 1.25rem;
-      padding: 1.5rem 1rem 1.2rem;
-      text-align: center;
-      text-decoration: none;
-      color: inherit;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.6rem;
-      transition: background 0.2s, border-color 0.2s, transform 0.18s, box-shadow 0.2s;
-      cursor: pointer;
-      position: relative;
-      overflow: visible;
-    }
-    .app-card:hover {
-      background: #263348;
-      border-color: #38bdf8;
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(56,189,248,0.12);
-    }
-
-    /* ── Icon wrapper ── */
-    .app-card .icon {
-      font-size: 2.4rem;
-      line-height: 1;
-      display: inline-block;
-      position: relative;
-      z-index: 1;
-      transition: transform 0.15s;
-    }
-    .app-card .name {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #f1f5f9;
-      transition: color 0.2s;
-    }
-    .app-card .desc {
-      font-size: 0.72rem;
-      color: #64748b;
-      line-height: 1.4;
-    }
-
-    /* ── Click animation keyframes ── */
-    @keyframes iconBlast {
-      0%   { transform: scale(1)    rotate(0deg);  filter: drop-shadow(0 0 0px #38bdf8); }
-      18%  { transform: scale(1.55) rotate(-12deg); filter: drop-shadow(0 0 14px #38bdf8); }
-      38%  { transform: scale(0.82) rotate(8deg);  filter: drop-shadow(0 0 8px #7dd3fc); }
-      58%  { transform: scale(1.35) rotate(-5deg); filter: drop-shadow(0 0 20px #38bdf8); }
-      78%  { transform: scale(0.9)  rotate(3deg);  filter: drop-shadow(0 0 6px #38bdf8); }
-      100% { transform: scale(1)    rotate(0deg);  filter: drop-shadow(0 0 0px #38bdf8); }
-    }
-    @keyframes cardGlow {
-      0%   { box-shadow: 0 0 0 0 rgba(56,189,248,0);  border-color: #334155; background: #1e293b; }
-      25%  { box-shadow: 0 0 0 8px rgba(56,189,248,0.25), 0 0 40px rgba(56,189,248,0.35); border-color: #38bdf8; background: #1a3352; }
-      55%  { box-shadow: 0 0 0 14px rgba(56,189,248,0.12), 0 0 60px rgba(56,189,248,0.2); border-color: #7dd3fc; background: #1a3352; }
-      100% { box-shadow: 0 0 0 0 rgba(56,189,248,0);  border-color: #38bdf8; background: #1e293b; }
-    }
-    @keyframes nameFlash {
-      0%,100% { color: #f1f5f9; }
-      40%     { color: #38bdf8; text-shadow: 0 0 12px rgba(56,189,248,0.8); }
-    }
-    @keyframes ringPulse {
-      0%   { transform: scale(0.3); opacity: 0.9; }
-      100% { transform: scale(3.2); opacity: 0; }
-    }
-
-    /* Active state classes applied by JS */
-    .app-card.card-active {
-      animation: cardGlow 0.55s ease-out both;
-      pointer-events: none;
-    }
-    .app-card.card-active .icon {
-      animation: iconBlast 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    .app-card.card-active .name {
-      animation: nameFlash 0.55s ease-out both;
-    }
-
-    /* Shockwave ring — injected by JS as siblings */
-    .card-ring {
-      position: absolute;
-      border-radius: 50%;
-      border: 2px solid #38bdf8;
-      pointer-events: none;
-      z-index: 20;
-      animation: ringPulse 0.65s ease-out both;
-    }
-
-    /* ── Coming soon (placeholder) ── */
-    .app-card.soon {
-      opacity: 0.45;
-      cursor: default;
-      pointer-events: none;
-    }
-    .app-card.soon .name::after {
-      content: ' · próximamente';
-      font-size: 0.65rem;
-      color: #475569;
-      font-weight: 400;
-    }
-
-    /* ── Footer ── */
-    footer {
-      margin-top: auto;
-      padding-top: 2.5rem;
-      text-align: center;
-      color: #334155;
-      font-size: 0.78rem;
-    }
-
-    /* ── Page transitions ── */
-    @keyframes pageEnter {
-      from { opacity: 0; transform: scale(0.97) translateY(8px); filter: blur(3px); }
-      to   { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
-    }
-    @keyframes pageExit {
-      from { opacity: 1; transform: scale(1);    filter: blur(0);   }
-      to   { opacity: 0; transform: scale(0.98); filter: blur(3px); }
-    }
-    /* Start invisible; JS adds .page-loaded after first paint to trigger enter */
-    body {
-      opacity: 0;
-    }
-    body.page-loaded {
-      animation: pageEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    body.page-exit {
-      animation: pageExit 0.32s ease-out both;
-      pointer-events: none;
-    }
-  </style>
+  <title>RootNode Container</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="home/home.css" />
 </head>
 <body>
+  <main class="container">
+    <section class="intro" aria-label="Presentacion principal de RootNode">
+      <div class="logo" aria-hidden="true">RN</div>
+      <h1>RootNode Container</h1>
+      <p>
+        Esta plataforma, alojada en una Raspberry Pi 5, funciona como un nodo unificado donde
+        conviven aplicaciones construidas con distintas tecnologias. Desde esta portada accedes
+        de forma directa a cada modulo del entorno.
+      </p>
+    </section>
 
-  <header>
-    <span class="logo">🏠</span>
-    <div>
-      <h1>Panel de inicio</h1>
-      <div class="domain">migueguay.ddns.net &mdash; Raspberry Pi 5</div>
-    </div>
-  </header>
+    <section class="apps" aria-label="Aplicaciones disponibles">
+      <a class="app-card" href="/metronomo/">
+        <span class="app-code">MET</span>
+        <span class="app-title">Metronomo</span>
+        <span class="app-desc">Control de tempo, compas y practica ritmica.</span>
+      </a>
 
-  <div class="section-label">Aplicaciones</div>
+      <a class="app-card" href="/rudimentos/">
+        <span class="app-code">RUD</span>
+        <span class="app-title">Rudimentos</span>
+        <span class="app-desc">Biblioteca de ejercicios tecnicos y lectura progresiva.</span>
+      </a>
 
-  <div class="app-grid">
+      <a class="app-card" href="/stick-control/">
+        <span class="app-code">STK</span>
+        <span class="app-title">Stick Control</span>
+        <span class="app-desc">Sesiones enfocadas en control, coordinacion y consistencia.</span>
+      </a>
 
-    <a class="app-card" href="/metronomo/">
-      <span class="icon">&#127932;</span>
-      <span class="name">Metrónomo</span>
-      <span class="desc">Tempo, compás y tap tempo</span>
-    </a>
-
-    <a class="app-card" href="/rudimentos/">
-      <span class="icon">🥁</span>
-      <span class="name">Rudimentos</span>
-      <span class="desc">40 PAS · pentagrama · velocímetro</span>
-    </a>
-
-    <a class="app-card" href="/stick-control/">
-      <span class="icon">🪘</span>
-      <span class="name">Stick Control</span>
-      <span class="desc">G. L. Stone · metrónomo · 40 ejercicios</span>
-    </a>
-
-    <a class="app-card" href="/seguridad/">
-      <span class="icon">🛡️</span>
-      <span class="name">SecurePi</span>
-      <span class="desc">Monitor de seguridad · tiempo real</span>
-    </a>
-
-    <!-- próximas apps aquí -->
-
-  </div>
-
-  <footer>migueguay.ddns.net &mdash; Raspberry Pi 5 &middot; Nginx &middot; Let&apos;s Encrypt</footer>
-
-  <script>
-    (function () {
-      /* Fade-in on load */
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          document.body.classList.add('page-loaded');
-        });
-      });
-
-      function spawnRings(card) {
-        var iconEl = card.querySelector('.icon');
-        var rect = iconEl.getBoundingClientRect();
-        var cardRect = card.getBoundingClientRect();
-        var cx = rect.left + rect.width / 2 - cardRect.left;
-        var cy = rect.top  + rect.height / 2 - cardRect.top;
-        var size = Math.max(rect.width, rect.height);
-        [0, 90, 190].forEach(function (delay) {
-          var ring = document.createElement('div');
-          ring.className = 'card-ring';
-          ring.style.cssText =
-            'width:' + size + 'px;height:' + size + 'px;' +
-            'left:' + (cx - size / 2) + 'px;' +
-            'top:'  + (cy - size / 2) + 'px;' +
-            'animation-delay:' + delay + 'ms;';
-          card.appendChild(ring);
-          setTimeout(function () { ring.remove(); }, delay + 700);
-        });
-      }
-
-      document.querySelectorAll('a.app-card[href]').forEach(function (card) {
-        card.addEventListener('click', function (e) {
-          var href = this.getAttribute('href');
-          if (!href || href.startsWith('#') || this.target) return;
-          try { if (new URL(href, location.href).origin !== location.origin) return; } catch (_) { return; }
-          e.preventDefault();
-          this.classList.add('card-active');
-          spawnRings(this);
-          setTimeout(function () {
-            document.body.classList.add('page-exit');
-            setTimeout(function () { location.href = href; }, 340);
-          }, 260);
-        });
-      });
-    })();
-  </script>
-
+      <a class="app-card" href="/seguridad/">
+        <span class="app-code">SEC</span>
+        <span class="app-title">SecurePi</span>
+        <span class="app-desc">Monitorizacion y visualizacion del estado de seguridad.</span>
+      </a>
+    </section>
+  </main>
 </body>
 </html>
