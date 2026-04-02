@@ -52,6 +52,7 @@
 
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
 
 html { scroll-behavior: smooth; }
 
@@ -247,11 +248,15 @@ body {
 }
 
 .nav__mobile {
+  display: none;
   border-top: 1px solid var(--color-border);
   padding: var(--sp-2) var(--sp-4);
-  display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+.nav__mobile.is-open {
+  display: flex;
 }
 
 .nav__mobile-link {

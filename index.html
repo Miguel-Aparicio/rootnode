@@ -28,7 +28,7 @@
         <span></span><span></span><span></span>
       </button>
     </div>
-    <div class="nav__mobile" id="nav-mobile" hidden>
+    <div class="nav__mobile" id="nav-mobile">
       <a href="#apps" class="nav__mobile-link">Apps</a>
       <a href="#acerca" class="nav__mobile-link">Acerca</a>
     </div>
@@ -170,12 +170,12 @@
     toggle?.addEventListener('click', () => {
       const open = toggle.getAttribute('aria-expanded') === 'true';
       toggle.setAttribute('aria-expanded', String(!open));
-      mobileMenu.hidden = open;
+      mobileMenu.classList.toggle('is-open', !open);
     });
     mobileMenu?.querySelectorAll('.nav__mobile-link').forEach(l => {
       l.addEventListener('click', () => {
         toggle.setAttribute('aria-expanded', 'false');
-        mobileMenu.hidden = true;
+        mobileMenu.classList.remove('is-open');
       });
     });
   </script>
