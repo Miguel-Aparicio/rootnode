@@ -3,49 +3,182 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="RootNode — Plataforma personal de aplicaciones desarrolladas con tecnologías diversas, alojada en Raspberry Pi 5." />
   <title>RootNode Container</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="home/home.css" />
 </head>
 <body>
-  <main class="container">
-    <section class="intro" aria-label="Presentacion principal de RootNode">
-      <div class="logo" aria-hidden="true">RN</div>
-      <h1>RootNode Container</h1>
-      <p>
-        Esta plataforma, alojada en una Raspberry Pi 5, funciona como un nodo unificado donde
-        conviven aplicaciones construidas con distintas tecnologias. Desde esta portada accedes
-        de forma directa a cada modulo del entorno.
-      </p>
+
+  <!-- ── Navigation ── -->
+  <header class="nav" role="banner">
+    <div class="nav__inner">
+      <a href="/" class="nav__logo" aria-label="RootNode — inicio">
+        <span class="nav__logo-mark" aria-hidden="true">RN</span>
+        <span class="nav__logo-name">RootNode</span>
+      </a>
+      <nav class="nav__links" aria-label="Navegación principal">
+        <a href="#apps" class="nav__link">Apps</a>
+        <a href="#acerca" class="nav__link">Acerca</a>
+      </nav>
+      <a href="#apps" class="btn btn--ghost nav__login">Acceder</a>
+      <button class="nav__toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav-mobile">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav__mobile" id="nav-mobile" hidden>
+      <a href="#apps" class="nav__mobile-link">Apps</a>
+      <a href="#acerca" class="nav__mobile-link">Acerca</a>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── Hero ── -->
+    <section class="hero" aria-labelledby="hero-h1">
+      <div class="hero__wrap">
+        <p class="eyebrow">Plataforma de desarrollo personal</p>
+        <h1 class="hero__title" id="hero-h1">Tus herramientas,<br>un solo lugar.</h1>
+        <p class="hero__sub">
+          RootNode es un servidor personal alojado en una Raspberry Pi 5 que centraliza
+          aplicaciones propias desarrolladas con tecnologías web diversas — música,
+          percusión, seguridad y más.
+        </p>
+        <div class="hero__actions">
+          <a href="#apps" class="btn btn--primary">Explorar apps</a>
+          <a href="#acerca" class="btn btn--outline">Más información</a>
+        </div>
+      </div>
     </section>
 
-    <section class="apps" aria-label="Aplicaciones disponibles">
-      <a class="app-card" href="/metronomo/">
-        <span class="app-code">MET</span>
-        <span class="app-title">Metronomo</span>
-        <span class="app-desc">Control de tempo, compas y practica ritmica.</span>
-      </a>
+    <!-- ── Apps ── -->
+    <section class="apps-sec" id="apps" aria-labelledby="apps-h2">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">Suite disponible</p>
+          <h2 class="section-title" id="apps-h2">Herramientas activas</h2>
+        </header>
+        <div class="apps-grid">
 
-      <a class="app-card" href="/rudimentos/">
-        <span class="app-code">RUD</span>
-        <span class="app-title">Rudimentos</span>
-        <span class="app-desc">Biblioteca de ejercicios tecnicos y lectura progresiva.</span>
-      </a>
+          <a class="app-card" href="/metronomo/" aria-label="Abrir Metronomo">
+            <svg class="app-card__icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="20,5 35,35 5,35"/>
+              <line x1="20" y1="5" x2="20" y2="35"/>
+              <line x1="20" y1="13" x2="28" y2="13"/>
+              <circle cx="26" cy="20" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
+            <span class="app-card__code">MET</span>
+            <h3 class="app-card__title">Metronomo</h3>
+            <p class="app-card__desc">Metrónomo digital con control de tempo, firma de compás y ajuste de sonido para la práctica musical.</p>
+            <span class="app-card__cta" aria-hidden="true">Abrir app →</span>
+          </a>
 
-      <a class="app-card" href="/stick-control/">
-        <span class="app-code">STK</span>
-        <span class="app-title">Stick Control</span>
-        <span class="app-desc">Sesiones enfocadas en control, coordinacion y consistencia.</span>
-      </a>
+          <a class="app-card" href="/rudimentos/" aria-label="Abrir Rudimentos">
+            <svg class="app-card__icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+              <circle cx="13" cy="30" r="4"/>
+              <circle cx="27" cy="30" r="4"/>
+              <line x1="13" y1="26" x2="21" y2="9"/>
+              <line x1="27" y1="26" x2="19" y2="9"/>
+            </svg>
+            <span class="app-card__code">RUD</span>
+            <h3 class="app-card__title">Rudimentos</h3>
+            <p class="app-card__desc">Biblioteca interactiva de rudimentos de batería con notación musical, audio y modo de práctica guiada.</p>
+            <span class="app-card__cta" aria-hidden="true">Abrir app →</span>
+          </a>
 
-      <a class="app-card" href="/seguridad/">
-        <span class="app-code">SEC</span>
-        <span class="app-title">SecurePi</span>
-        <span class="app-desc">Monitorizacion y visualizacion del estado de seguridad.</span>
-      </a>
+          <a class="app-card" href="/stick-control/" aria-label="Abrir Stick Control">
+            <svg class="app-card__icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+              <rect x="5" y="8" width="30" height="24" rx="3"/>
+              <line x1="5" y1="17" x2="35" y2="17"/>
+              <line x1="5" y1="25" x2="35" y2="25"/>
+              <line x1="15" y1="8" x2="15" y2="32"/>
+              <line x1="25" y1="8" x2="25" y2="32"/>
+            </svg>
+            <span class="app-card__code">STK</span>
+            <h3 class="app-card__title">Stick Control</h3>
+            <p class="app-card__desc">Ejercicios del método Stick Control de George L. Stone. Control, coordinación y consistencia aplicados.</p>
+            <span class="app-card__cta" aria-hidden="true">Abrir app →</span>
+          </a>
+
+          <a class="app-card" href="/seguridad/" aria-label="Abrir SecurePi">
+            <svg class="app-card__icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 6L32 11V22C32 29 20 35 20 35C20 35 8 29 8 22V11Z"/>
+              <polyline points="15,20 18,23 25,16"/>
+            </svg>
+            <span class="app-card__code">SEC</span>
+            <h3 class="app-card__title">SecurePi</h3>
+            <p class="app-card__desc">Panel de monitorización de seguridad de red con geolocalización de eventos y estadísticas de acceso.</p>
+            <span class="app-card__cta" aria-hidden="true">Abrir app →</span>
+          </a>
+
+        </div>
+      </div>
     </section>
+
+    <!-- ── About / Final CTA ── -->
+    <section class="about-sec" id="acerca" aria-labelledby="about-h2">
+      <div class="container">
+        <div class="about-inner">
+          <div class="about-text">
+            <p class="eyebrow">Sobre el proyecto</p>
+            <h2 class="section-title" id="about-h2">Un laboratorio siempre<br>encendido.</h2>
+            <p class="about-body">
+              Cada aplicación en RootNode es código real en producción, ejecutándose
+              continuamente sobre hardware propio. El objetivo es aprender construyendo
+              herramientas que sean genuinamente útiles.
+            </p>
+            <a href="#apps" class="btn btn--primary">Ver todas las apps</a>
+          </div>
+          <div class="about-stats" aria-label="Estadísticas del proyecto">
+            <div class="stat">
+              <span class="stat__num">4</span>
+              <span class="stat__label">Apps activas</span>
+            </div>
+            <div class="stat">
+              <span class="stat__num">Pi&nbsp;5</span>
+              <span class="stat__label">Hardware propio</span>
+            </div>
+            <div class="stat">
+              <span class="stat__num">24/7</span>
+              <span class="stat__label">Disponibilidad</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
+
+  <!-- ── Footer ── -->
+  <footer class="footer" role="contentinfo">
+    <div class="container footer__inner">
+      <p class="footer__copy">© 2026 RootNode · Raspberry Pi 5</p>
+      <nav class="footer__links" aria-label="Navegación de pie de página">
+        <a href="#" class="footer__link">Privacidad</a>
+        <a href="#" class="footer__link">Términos</a>
+        <a href="#" class="footer__link">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    /* Mobile nav toggle */
+    const toggle = document.querySelector('.nav__toggle');
+    const mobileMenu = document.getElementById('nav-mobile');
+    toggle?.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!open));
+      mobileMenu.hidden = open;
+    });
+    mobileMenu?.querySelectorAll('.nav__mobile-link').forEach(l => {
+      l.addEventListener('click', () => {
+        toggle.setAttribute('aria-expanded', 'false');
+        mobileMenu.hidden = true;
+      });
+    });
+  </script>
+
 </body>
 </html>
