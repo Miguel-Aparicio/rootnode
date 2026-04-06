@@ -240,4 +240,4 @@ En móvil (≤ 700 px): el sidebar se oculta con `display: none`. Aparece una ba
 - **Servidor**: Raspberry Pi 5
 - **Web server**: Nginx, sirviendo estáticos desde `/var/www/rootnode/`
 - **HTTPS**: Let's Encrypt via certbot
-- **DNS dinámico**: `migueguay.ddns.net`
+- **DNS dinámico**: `rootnode.ddns.net`
