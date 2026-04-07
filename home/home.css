@@ -440,6 +440,63 @@ body {
   letter-spacing: 0.04em;
 }
 
+/* ── WIP badge ── */
+.app-card--wip {
+  opacity: 0.68;
+  filter: saturate(0.8);
+  transition: background var(--transition), border-color var(--transition),
+              transform var(--transition), box-shadow var(--transition),
+              opacity var(--transition), filter var(--transition);
+}
+.app-card--wip:hover {
+  opacity: 1;
+  filter: saturate(1);
+}
+
+.app-card__wip {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #e9ce37;
+  background: rgba(196, 144, 96, 0.1);
+  border: 1px solid rgba(196, 144, 96, 0.22);
+  border-radius: 4px;
+  padding: 0.22em 0.6em;
+  line-height: 1.5;
+  pointer-events: none;
+  user-select: none;
+}
+.app-card__wip::before {
+  content: '▲';
+  font-size: 0.6em;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.app-card__icon-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.app-card__yield {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 4px rgba(240, 192, 48, 0.25));
+  transition: filter var(--transition);
+}
+.app-card--wip:hover .app-card__yield {
+  filter: drop-shadow(0 2px 8px rgba(240, 192, 48, 0.5));
+}
+
 @media (max-width: 900px) {
   .apps-grid { grid-template-columns: repeat(2, 1fr); }
 }
