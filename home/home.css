@@ -350,6 +350,7 @@ body {
 /* ── Apps Section ── */
 .apps-sec {
   padding: var(--sp-4) 0 var(--sp-12);
+  scroll-margin-top: 4rem;
 }
 
 .apps-grid {
@@ -451,6 +452,7 @@ body {
 .about-sec {
   padding: var(--sp-16) 0;
   border-top: 1px solid var(--color-border);
+  scroll-margin-top: 4rem;
 }
 
 .about-inner {

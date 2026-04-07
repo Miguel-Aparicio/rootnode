@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Despensa — Gestión de inventario de cocina y lista de la compra." />
+  <title>Despensa · RootNode</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f4a261'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Inter,Arial,sans-serif' font-weight='700' font-size='18' fill='%231a0e0a'%3E🥘%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__back" aria-label="Volver a RootNode">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4L6 10l6 6"/></svg>
+      </a>
+      <div class="header__brand">
+        <span class="header__icon" aria-hidden="true">🥘</span>
+        <span class="header__title">Despensa</span>
+      </div>
+      <button class="btn--icon" id="btn-shopping-mode" title="Modo compra" aria-label="Activar modo compra">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Zone Tabs ── -->
+  <nav class="zone-tabs" role="tablist" aria-label="Zonas de almacenamiento">
+    <button class="zone-tab active" role="tab" aria-selected="true"  data-zone="despensa"   aria-controls="panel-despensa">
+      <span class="zone-tab__icon" aria-hidden="true">🫙</span>
+      <span>Despensa</span>
+    </button>
+    <button class="zone-tab" role="tab" aria-selected="false" data-zone="nevera"    aria-controls="panel-nevera">
+      <span class="zone-tab__icon" aria-hidden="true">🌡️</span>
+      <span>Nevera</span>
+    </button>
+    <button class="zone-tab" role="tab" aria-selected="false" data-zone="congelador" aria-controls="panel-congelador">
+      <span class="zone-tab__icon" aria-hidden="true">❄️</span>
+      <span>Congelador</span>
+    </button>
+    <button class="zone-tab zone-tab--lista" role="tab" aria-selected="false" data-zone="lista" aria-controls="panel-lista">
+      <span class="zone-tab__icon" aria-hidden="true">📋</span>
+      <span>Lista</span>
+      <span class="badge" id="badge-lista" hidden>0</span>
+    </button>
+  </nav>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- ── Search + Add bar ── -->
+    <div class="toolbar" id="toolbar-inventory">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="6"/><line x1="13.5" y1="13.5" x2="18" y2="18"/></svg>
+        <input type="search" id="search-input" class="search-input" placeholder="Buscar producto…" autocomplete="off" />
+      </div>
+      <div class="toolbar__filters">
+        <button class="filter-chip active" data-filter="all">Todo</button>
+        <button class="filter-chip" data-filter="ok">✅ Tengo</button>
+        <button class="filter-chip" data-filter="missing">⚠️ Falta</button>
+        <button class="filter-chip" data-filter="low">🔶 Poco</button>
+      </div>
+    </div>
+
+    <!-- ── Zone Panels ── -->
+    <div class="panels">
+
+      <!-- DESPENSA -->
+      <section class="panel active" id="panel-despensa" role="tabpanel" aria-labelledby="tab-despensa">
+        <div class="category-list" id="list-despensa"></div>
+        <div class="empty-state" id="empty-despensa" hidden>
+          <span class="empty-state__icon">🫙</span>
+          <p>Despensa vacía. ¡Añade tu primer producto!</p>
+        </div>
+      </section>
+
+      <!-- NEVERA -->
+      <section class="panel" id="panel-nevera" role="tabpanel" aria-labelledby="tab-nevera">
+        <div class="category-list" id="list-nevera"></div>
+        <div class="empty-state" id="empty-nevera" hidden>
+          <span class="empty-state__icon">🌡️</span>
+          <p>Nevera vacía. ¡Añade tu primer producto!</p>
+        </div>
+      </section>
+
+      <!-- CONGELADOR -->
+      <section class="panel" id="panel-congelador" role="tabpanel" aria-labelledby="tab-congelador">
+        <div class="category-list" id="list-congelador"></div>
+        <div class="empty-state" id="empty-congelador" hidden>
+          <span class="empty-state__icon">❄️</span>
+          <p>Congelador vacío. ¡Añade tu primer producto!</p>
+        </div>
+      </section>
+
+      <!-- LISTA DE LA COMPRA -->
+      <section class="panel" id="panel-lista" role="tabpanel" aria-labelledby="tab-lista">
+        <div class="lista-toolbar">
+          <button class="btn btn--outline btn--sm" id="btn-add-from-missing">Importar productos que faltan</button>
+          <button class="btn btn--ghost btn--sm" id="btn-clear-checked">Limpiar marcados</button>
+          <button class="btn btn--ghost btn--sm" id="btn-share-list">Compartir</button>
+        </div>
+        <ul class="shopping-list" id="shopping-list">
+          <li class="shopping-list__empty" id="shopping-empty">No hay productos en la lista.</li>
+        </ul>
+      </section>
+
+    </div>
+
+    <!-- ── FAB: Añadir producto ── -->
+    <button class="fab" id="btn-add-product" aria-label="Añadir producto" title="Añadir producto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+
+  </main>
+
+  <!-- ══════════ MODAL: Añadir / Editar producto ══════════ -->
+  <div class="modal-overlay" id="modal-product" role="dialog" aria-modal="true" aria-labelledby="modal-product-title" hidden>
+    <div class="modal">
+      <header class="modal__header">
+        <h2 class="modal__title" id="modal-product-title">Añadir producto</h2>
+        <button class="modal__close" id="modal-product-close" aria-label="Cerrar">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+        </button>
+      </header>
+      <div class="modal__body">
+        <input type="hidden" id="modal-product-id" />
+
+        <div class="field">
+          <label class="field__label" for="field-name">Nombre del producto</label>
+          <input class="field__input" type="text" id="field-name" placeholder="Ej: Tomate frito, Leche entera…" autocomplete="off" />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label" for="field-zone">Zona</label>
+            <select class="field__input field__select" id="field-zone">
+              <option value="despensa">🫙 Despensa</option>
+              <option value="nevera">🌡️ Nevera</option>
+              <option value="congelador">❄️ Congelador</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="field-category">Categoría</label>
+            <select class="field__input field__select" id="field-category">
+              <option value="frutas">🍎 Frutas y verduras</option>
+              <option value="lacteos">🥛 Lácteos y huevos</option>
+              <option value="carnes">🥩 Carnes y pescados</option>
+              <option value="conservas">🥫 Conservas</option>
+              <option value="granos">🌾 Granos y cereales</option>
+              <option value="condimentos">🧂 Condimentos y especias</option>
+              <option value="bebidas">🧃 Bebidas</option>
+              <option value="pan">🍞 Pan y repostería</option>
+              <option value="precocinados">🍱 Precocinados</option>
+              <option value="otros">📦 Otros</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label" for="field-qty">Cantidad</label>
+            <div class="qty-wrap">
+              <button type="button" class="qty-btn" id="qty-minus" aria-label="Restar">−</button>
+              <input class="field__input qty-input" type="number" id="field-qty" min="0" step="1" value="1" />
+              <button type="button" class="qty-btn" id="qty-plus" aria-label="Sumar">+</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="field-unit">Unidad</label>
+            <select class="field__input field__select" id="field-unit">
+              <option value="ud">ud.</option>
+              <option value="kg">kg</option>
+              <option value="g">g</option>
+              <option value="L">L</option>
+              <option value="ml">ml</option>
+              <option value="bolsa">bolsa</option>
+              <option value="bote">bote</option>
+              <option value="paquete">paquete</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label" for="field-status">Estado</label>
+            <select class="field__input field__select" id="field-status">
+              <option value="ok">✅ Tengo</option>
+              <option value="low">🔶 Queda poco</option>
+              <option value="missing">⚠️ Falta</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="field-expiry">Caduca (opcional)</label>
+            <input class="field__input" type="date" id="field-expiry" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="field-notes">Notas</label>
+          <input class="field__input" type="text" id="field-notes" placeholder="Ej: Marca preferida, sin gluten…" />
+        </div>
+      </div>
+      <footer class="modal__footer">
+        <button class="btn btn--ghost" id="modal-product-delete" hidden>Eliminar</button>
+        <div class="modal__footer-right">
+          <button class="btn btn--outline" id="modal-product-cancel">Cancelar</button>
+          <button class="btn btn--primary" id="modal-product-save">Guardar</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ══════════ MODAL: Añadir ítem a lista ══════════ -->
+  <div class="modal-overlay" id="modal-listitem" role="dialog" aria-modal="true" aria-labelledby="modal-listitem-title" hidden>
+    <div class="modal modal--sm">
+      <header class="modal__header">
+        <h2 class="modal__title" id="modal-listitem-title">Añadir a la lista</h2>
+        <button class="modal__close" id="modal-listitem-close" aria-label="Cerrar">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+        </button>
+      </header>
+      <div class="modal__body">
+        <div class="field">
+          <label class="field__label" for="listitem-name">Producto</label>
+          <input class="field__input" type="text" id="listitem-name" placeholder="Ej: Pan de molde, Aceite…" autocomplete="off" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label" for="listitem-qty">Cantidad</label>
+            <input class="field__input" type="text" id="listitem-qty" placeholder="2 kg, 1 bote…" />
+          </div>
+        </div>
+      </div>
+      <footer class="modal__footer">
+        <div class="modal__footer-right">
+          <button class="btn btn--outline" id="modal-listitem-cancel">Cancelar</button>
+          <button class="btn btn--primary" id="modal-listitem-save">Añadir</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ══════════ TOAST ══════════ -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
