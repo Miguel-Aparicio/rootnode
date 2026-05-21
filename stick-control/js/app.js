@@ -165,14 +165,11 @@ function scheduler(){
         const m = step / 8 + 1, mt = waitTotal / 8;
         const d = Math.max(0, (t - audioCtx.currentTime) * 1000 - 8);
         setTimeout(() => {
-          document.getElementById('beatCounterLabel').textContent = `Espera: ${m} / ${mt}`;
+          updateModeCounter(`Espera ${m} / ${mt}`);
         }, d);
       }
       nextNoteTime += (60.0 / bpm) * 0.5;
       waitLeft--;
-      if(waitLeft === 0){
-        doSeamlessAdvance(nextNoteTime); // advance seamlessly right as wait ends
-      }
       continue;
     }
 
@@ -202,10 +199,11 @@ function scheduler(){
       if(currentMode === 'reps20' && loopCount >= 20){
         doSeamlessAdvance(nextNoteTime);
       }
-      // ── wait2 / wait4: enter wait phase after 1 loop ──
+      // ── wait2 / wait4: transition fires immediately, then wait measures play ──
       if((currentMode === 'wait2' || currentMode === 'wait4') && loopCount >= 1){
         waitTotal = (currentMode === 'wait2') ? 16 : 32;
         waitLeft  = waitTotal;
+        doSeamlessAdvance(nextNoteTime); // advance now — wait plays before new exercise
       }
     }
   }
@@ -221,6 +219,7 @@ function startPlay(){
   scheduledBeatPos = 0;
   loopCount    = 0;
   waitLeft     = 0;
+  updateModeCounter();
   nextNoteTime = audioCtx.currentTime + 0.05;
   // Initialise playhead for note 0
   phBeatIdx   = 0;
@@ -235,13 +234,13 @@ function startPlay(){
 function stopPlay(){
   isPlaying = false;
   waitLeft  = 0;
+  loopCount = 0;
   if(playheadRafId){ cancelAnimationFrame(playheadRafId); playheadRafId = null; }
   clearTimeout(schedulerTimer);
   clearAllBeats();
   document.getElementById('playBtn').classList.remove('playing');
   document.getElementById('playBtn').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-  document.getElementById('loopCount').textContent = '0';
-  document.getElementById('beatCounterLabel').textContent = 'Pulso: — / ' + currentPattern().length;
+  updateModeCounter();
 }
 
 function togglePlay(){
@@ -251,14 +250,28 @@ function togglePlay(){
 /* ── Beat UI ── */
 function advanceBeatUI(beat, totalBeats){
   currentBeat = beat;
-  document.getElementById('loopCount').textContent = loopCount;
-  document.getElementById('beatCounterLabel').textContent = `Pulso: ${beat+1} / ${totalBeats}`;
+  updateModeCounter();
 }
 
 function clearAllBeats(){
   const ph = document.querySelector('#beatDisplay .playhead');
   if(ph) ph.style.opacity = '0';
-  document.getElementById('beatCounterLabel').textContent = 'Pulso: — / ' + currentPattern().length;
+}
+
+function updateModeCounter(override){
+  const el = document.getElementById('modeCounter');
+  if(!el) return;
+  if(override !== undefined){ el.textContent = override; return; }
+  switch(currentMode){
+    case 'reps20':
+      el.textContent = `Rep. ${loopCount + 1} / 20`; break;
+    case 'wait2':
+      el.textContent = 'Espera · 2c'; break;
+    case 'wait4':
+      el.textContent = 'Espera · 4c'; break;
+    default: // libre
+      el.textContent = loopCount || ''; break;
+  }
 }
 
 function drawPlayhead(){
@@ -315,6 +328,7 @@ function setMode(m){
   document.querySelectorAll('.mode-opt').forEach(b =>
     b.classList.toggle('active', b.dataset.mode === m));
   document.getElementById('modeDropdown').classList.remove('open');
+  updateModeCounter();
 }
 function toggleModeDropdown(e){
   e.stopPropagation();
@@ -472,8 +486,6 @@ function renderCard(dir){
   const groups = groupsOf(p);
   disp.innerHTML = buildBeatSVG(groups);
   renderNextPreview();
-
-  document.getElementById('beatCounterLabel').textContent = 'Pulso: — / ' + currentPattern().length;
 
   // Animate
   const card = document.getElementById('practiceCard');
