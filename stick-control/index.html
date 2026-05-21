@@ -21,26 +21,17 @@
 
 <div class="app">
   <h1 class="page-title">Stick Control</h1>
-  <p class="page-subtitle">G. L. Stone — Páginas 1, 2 y 3 · 72 ejercicios · Verifica los patrones con tu libro</p>
+  <p class="page-subtitle">Por George Lawrence Stone</p>
 
-  <p class="progress-label"><span class="done-count" id="doneCount">0</span> / <span id="totalCount">0</span> ejercicios practicados</p>
-  <div class="progress-bar-row">
-    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-  </div>
 
-  <div class="section-tabs" id="sectionTabs"></div>
-  <div class="pattern-chips" id="patternChips"></div>
+  <div class="page-picker" id="pagePicker"></div>
 
   <div class="card-nav">
     <div class="practice-card" id="practiceCard">
       <div class="card-inner">
         <div class="pattern-header">
           <div class="pattern-ex" id="patternEx"></div>
-          <button class="done-btn" id="doneBtn" title="Marcar como practicado" onclick="toggleDone()">✓</button>
-        </div>
-        <div class="exercises-stack" id="exercisesStack">
-          <div class="beat-display" id="beatDisplay"></div>
-          <div class="beat-display" id="beatDisplayNext"></div>
+
         </div>
         <div class="controls">
           <div class="play-row">
@@ -49,14 +40,20 @@
             </button>
             <div class="metronome-info">
               <div class="loop-counter" id="modeCounter"></div>
+              <svg class="wait-ring" id="waitRing" viewBox="0 0 36 36" width="36" height="36">
+                <circle class="wait-ring-bg" cx="18" cy="18" r="15"/>
+                <circle class="wait-ring-fill" id="waitRingFill" cx="18" cy="18" r="15"/>
+              </svg>
             </div>
+            <button class="repeat-btn" id="repeatBtn" onclick="requestRepeat()">&#x21A9; Repetir</button>
             <div class="right-controls">
+              <span class="mode-label">Modos de práctica:</span>
               <div class="bpm-trigger-wrap">
                 <button class="bpm-trigger" id="modeTrigger" onclick="toggleModeDropdown(event)">
                   <span id="modeDisplay">Modo</span>
                 </button>
                 <div class="bpm-dropdown" id="modeDropdown">
-                  <button class="mode-opt" data-mode="libre" onclick="setMode('libre')">Libre (sin avance)</button>
+                  <button class="mode-opt" data-mode="biblioteca" onclick="setMode('biblioteca')">Biblioteca</button>
                   <button class="mode-opt" data-mode="reps20" onclick="setMode('reps20')">20 repeticiones</button>
                   <button class="mode-opt" data-mode="wait2" onclick="setMode('wait2')">Espera 2 compases</button>
                   <button class="mode-opt" data-mode="wait4" onclick="setMode('wait4')">Espera 4 compases</button>
@@ -64,19 +61,24 @@
               </div>
               <div class="bpm-trigger-wrap">
                 <button class="bpm-trigger" id="bpmTrigger" onclick="toggleBpmDropdown(event)">
-                  <span id="bpmDisplay">80</span><span class="bpm-unit"> BPM</span>
+                  <span id="bpmDisplay">152</span><span class="bpm-unit"> BPM</span>
                 </button>
                 <div class="bpm-dropdown" id="bpmDropdown">
-                  <input type="range" id="bpmSlider" min="30" max="220" value="80" oninput="setBpm(+this.value)">
+                  <input type="range" id="bpmSlider" min="30" max="220" value="152" oninput="setBpm(+this.value)">
                   <div class="tempo-presets" id="tempoPresets"></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+        <div class="exercises-stack" id="exercisesStack">
+          <div class="beat-display" id="beatDisplay"></div>
+          <div class="beat-display" id="beatDisplayNext"></div>
+        </div>
       </div>
     </div>
   </div>
+  <div class="library-panel" id="libraryPanel"></div>
 </div>
 
 <script src="js/app.js" defer></script>

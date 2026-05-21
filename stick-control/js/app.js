@@ -1,97 +1,96 @@
 /* ────────────────────────────────────────────────────────────
    DATA — Stick Control, G. L. Stone — Páginas 1-3 (ejercicios 1-72)
-   8 golpes por ejercicio. D=Derecha, I=Izquierda. | = separador de grupo visual.
-   Cada par impar/par es espejo D↔I (ej: 1 y 2, 3 y 4, etc.)
+   16 golpes por ejercicio, formato XXXX|XXXX|XXXX|XXXX (4 grupos de 4).
    ──────────────────────────────────────────────────────────── */
 const SECTIONS = [
   {
     id: 'P1',
     name: 'Página 1',
     patterns: [
-      { ex:  1, beats: 'DIDI|DIDI' },
-      { ex:  2, beats: 'IDID|IDID' },
-      { ex:  3, beats: 'DDII|DDII' },
-      { ex:  4, beats: 'IIDD|IIDD' },
-      { ex:  5, beats: 'DIDI|DDII' },
-      { ex:  6, beats: 'IDID|IIDD' },
-      { ex:  7, beats: 'DDII|DIDI' },
-      { ex:  8, beats: 'IIDD|IDID' },
-      { ex:  9, beats: 'DIID|DIID' },
-      { ex: 10, beats: 'IDDI|IDDI' },
-      { ex: 11, beats: 'DIDD|DDII' },
-      { ex: 12, beats: 'IDII|IIDD' },
-      { ex: 13, beats: 'DIDD|DIDD' },
-      { ex: 14, beats: 'IDII|IDII' },
-      { ex: 15, beats: 'DIDI|DIDD' },
-      { ex: 16, beats: 'IDID|IDII' },
-      { ex: 17, beats: 'DIDD|DIDI' },
-      { ex: 18, beats: 'IDII|IDID' },
-      { ex: 19, beats: 'DDID|DDID' },
-      { ex: 20, beats: 'IIDI|IIDI' },
-      { ex: 21, beats: 'DIDI|DDID' },
-      { ex: 22, beats: 'IDID|IIDI' },
-      { ex: 23, beats: 'DDID|DIDI' },
-      { ex: 24, beats: 'IIDI|IDID' },
+      { ex:  1, beats: 'RLRL|RLRL|RLRL|RLRL' },
+      { ex:  2, beats: 'LRLR|LRLR|LRLR|LRLR' },
+      { ex:  3, beats: 'RRLL|RRLL|RRLL|RRLL' },
+      { ex:  4, beats: 'LLRR|LLRR|LLRR|LLRR' },
+      { ex:  5, beats: 'RLRR|LRLL|RLRR|LRLL' },
+      { ex:  6, beats: 'RLLR|LRRL|RLLR|LRRL' },
+      { ex:  7, beats: 'RRLR|LLRL|RRLR|LLRL' },
+      { ex:  8, beats: 'RLRL|LRLR|RLRL|LRLR' },
+      { ex:  9, beats: 'RRRL|RRRL|RRRL|RRRL' },
+      { ex: 10, beats: 'LLLR|LLLR|LLLR|LLLR' },
+      { ex: 11, beats: 'RLLL|RLLL|RLLL|RLLL' },
+      { ex: 12, beats: 'LRRR|LRRR|LRRR|LRRR' },
+      { ex: 13, beats: 'RRRR|LLLL|RRRR|LLLL' },
+      { ex: 14, beats: 'RLRL|RRLL|RLRL|RRLL' },
+      { ex: 15, beats: 'LRLR|LLRR|LRLR|LLRR' },
+      { ex: 16, beats: 'RLRL|RLRR|LRLR|LRLL' },
+      { ex: 17, beats: 'RLRL|RLLR|LRLR|LRRL' },
+      { ex: 18, beats: 'RLRL|RRLR|LRLR|LLRL' },
+      { ex: 19, beats: 'RLRL|RRRL|RLRL|RRRL' },
+      { ex: 20, beats: 'LRLR|LLLR|LRLR|LLLR' },
+      { ex: 21, beats: 'RLRL|RLLL|RLRL|RLLL' },
+      { ex: 22, beats: 'LRLR|LRRR|LRLR|LRRR' },
+      { ex: 23, beats: 'RLRL|RRRR|LRLR|LLLL' },
+      { ex: 24, beats: 'RRLL|RLRR|LLRR|LRLL' },
     ]
   },
   {
     id: 'P2',
     name: 'Página 2',
     patterns: [
-      { ex: 25, beats: 'DIID|DIDI' },
-      { ex: 26, beats: 'IDDI|IDID' },
-      { ex: 27, beats: 'DIDI|DIID' },
-      { ex: 28, beats: 'IDID|IDDI' },
-      { ex: 29, beats: 'DDII|DIID' },
-      { ex: 30, beats: 'IIDD|IDDI' },
-      { ex: 31, beats: 'DIID|DDII' },
-      { ex: 32, beats: 'IDDI|IIDD' },
-      { ex: 33, beats: 'DIDD|DIID' },
-      { ex: 34, beats: 'IDII|IDDI' },
-      { ex: 35, beats: 'DIID|DIDD' },
-      { ex: 36, beats: 'IDDI|IDII' },
-      { ex: 37, beats: 'DDID|DIID' },
-      { ex: 38, beats: 'IIDI|IDDI' },
-      { ex: 39, beats: 'DIID|DDID' },
-      { ex: 40, beats: 'IDDI|IIDI' },
-      { ex: 41, beats: 'DIDI|DIDD' },
-      { ex: 42, beats: 'IDID|IDII' },
-      { ex: 43, beats: 'DIDD|DIDI' },
-      { ex: 44, beats: 'IDII|IDID' },
-      { ex: 45, beats: 'DDII|DIDD' },
-      { ex: 46, beats: 'IIDD|IDII' },
-      { ex: 47, beats: 'DIDD|DDII' },
-      { ex: 48, beats: 'IDII|IIDD' },
+      { ex: 25, beats: 'RRLL|RLLR|LLRR|LRRL' },
+      { ex: 26, beats: 'RRLL|RRLR|LLRR|LLRL' },
+      { ex: 27, beats: 'RRLL|LLRR|RRLL|LLRR' },
+      { ex: 28, beats: 'RRLL|RRRL|RRLL|RRRL' },
+      { ex: 29, beats: 'LLRR|LLLR|LLRR|LLLR' },
+      { ex: 30, beats: 'RRLL|RLLL|RRLL|RLLL' },
+      { ex: 31, beats: 'LLRR|LRRR|LLRR|LRRR' },
+      { ex: 32, beats: 'RRLL|RRRR|LLRR|LLLL' },
+      { ex: 33, beats: 'RLRR|LRRL|RLRR|LRRL' },
+      { ex: 34, beats: 'LRLL|RLLR|LRLL|RLLR' },
+      { ex: 35, beats: 'RLRR|LLRL|RLRR|LLRL' },
+      { ex: 36, beats: 'LRLL|RRLR|LRLL|RRLR' },
+      { ex: 37, beats: 'RLRR|RLRR|RLRR|RLRR' },
+      { ex: 38, beats: 'LRLL|LRLL|LRLL|LRLL' },
+      { ex: 39, beats: 'RLRR|LLLR|LRLL|RRRL' },
+      { ex: 40, beats: 'RLRR|LRRR|LRLL|RLLL' },
+      { ex: 41, beats: 'RLRR|LLLL|RLRR|LLLL' },
+      { ex: 42, beats: 'LRLL|RRRR|LRLL|RRRR' },
+      { ex: 43, beats: 'RLLR|LLRL|RLLR|LLRL' },
+      { ex: 44, beats: 'LRRL|RRLR|LRRL|RRLR' },
+      { ex: 45, beats: 'RLLR|RLLR|RLLR|RLLR' },
+      { ex: 46, beats: 'LRRL|LRRL|LRRL|LRRL' },
+      { ex: 47, beats: 'RLLR|LLLR|LRRL|RRRL' },
+      { ex: 48, beats: 'RLLR|LRRR|LRRL|RLLL' },
     ]
   },
   {
     id: 'P3',
     name: 'Página 3',
     patterns: [
-      { ex: 49, beats: 'DDID|DIDI' },
-      { ex: 50, beats: 'IIDI|IDID' },
-      { ex: 51, beats: 'DIDI|DDID' },
-      { ex: 52, beats: 'IDID|IIDI' },
-      { ex: 53, beats: 'DIDD|DDID' },
-      { ex: 54, beats: 'IDII|IIDI' },
-      { ex: 55, beats: 'DDID|DIDD' },
-      { ex: 56, beats: 'IIDI|IDII' },
-      { ex: 57, beats: 'DIID|DDID' },
-      { ex: 58, beats: 'IDDI|IIDI' },
-      { ex: 59, beats: 'DDID|DIID' },
-      { ex: 60, beats: 'IIDI|IDDI' },
-      { ex: 61, beats: 'DDII|DDID' },
-      { ex: 62, beats: 'IIDD|IIDI' },
-      { ex: 63, beats: 'DDID|DDII' },
-      { ex: 64, beats: 'IIDI|IIDD' },
-      { ex: 65, beats: 'DDII|DIDD' },
-      { ex: 66, beats: 'IIDD|IDII' },
-      { ex: 67, beats: 'DIDD|DDID' },
-      { ex: 68, beats: 'IDII|IIDI' },
-      { ex: 69, beats: 'DDID|DIDD' },
-      { ex: 70, beats: 'IIDI|IDII' },
-      { ex: 71, beats: 'DIID|DIDD' },
-      { ex: 72, beats: 'IDDI|IDII' },
+      { ex: 49, beats: 'RLLR|LLLL|RLLR|LLLL' },
+      { ex: 50, beats: 'LRRL|RRRR|LRRL|RRRR' },
+      { ex: 51, beats: 'RRLR|RRLR|RRLR|RRLR' },
+      { ex: 52, beats: 'LLRL|LLRL|LLRL|LLRL' },
+      { ex: 53, beats: 'RRLR|LLLR|LLRL|RRRL' },
+      { ex: 54, beats: 'RRLR|LRRR|LLRL|RLLL' },
+      { ex: 55, beats: 'RRLR|LLLL|RRLR|LLLL' },
+      { ex: 56, beats: 'LLRL|RRRR|LLRL|RRRR' },
+      { ex: 57, beats: 'RRRL|LLLR|RRRL|LLLR' },
+      { ex: 58, beats: 'RRRL|RLLL|RRRL|RLLL' },
+      { ex: 59, beats: 'LLLR|LRRR|LLLR|LRRR' },
+      { ex: 60, beats: 'RRRL|RRRR|LLLR|LLLL' },
+      { ex: 61, beats: 'RLLL|LRRR|RLLL|LRRR' },
+      { ex: 62, beats: 'RLLL|RRRR|LRRR|LLLL' },
+      { ex: 63, beats: 'RRRL|LLRR|RLLL|RRRL' },
+      { ex: 64, beats: 'LLLR|RRLL|LRRR|LLLR' },
+      { ex: 65, beats: 'RRLR|RLRR|LRRL|RLRL' },
+      { ex: 66, beats: 'LLRL|LRLL|RLLR|LRLR' },
+      { ex: 67, beats: 'RLLR|LLRL|LRRL|RRLR' },
+      { ex: 68, beats: 'LRRL|RRLR|RLRR|LRLR' },
+      { ex: 69, beats: 'RLRR|LLLL|RRRR|LRLL' },
+      { ex: 70, beats: 'RRLL|RLRR|LLLL|RRRR' },
+      { ex: 71, beats: 'LLRR|LRLL|RRRR|LLLL' },
+      { ex: 72, beats: 'RRRR|LLRR|LRRL|RLRL' },
     ]
   },
 ];
@@ -103,15 +102,18 @@ const TOTAL = ALL.length;
 
 /* ── State ── */
 let currentIdx = 0;
-let currentSection = 'all';
+let selectedPages = null; // null = all, Set<string> = specific page IDs
 let filteredIdxs = ALL.map((_,i)=>i); // indices into ALL[]
 let done = new Set(JSON.parse(localStorage.getItem('scDone')||'[]'));
-let bpm = 80;
+let bpm = 152;
 let isPlaying = false;
 let loopCount = 0;
-let currentMode  = 'reps20'; // 'libre' | 'reps20' | 'wait2' | 'wait4'
+let currentMode  = 'reps20'; // 'biblioteca' | 'reps20' | 'wait2' | 'wait4'
 let waitLeft     = 0;  // eighth-note steps remaining in between-exercise wait phase
 let waitTotal    = 0;  // total steps in current wait phase (for UI label)
+let repeatPending          = false; // "repeat last" pressed during exercise phase
+let repeatAfterWait        = false; // "repeat last" pressed during wait phase
+let repeatAfterWaitPrevIdx = -1;    // prev exercise idx to insert after wait ends
 let currentBeat = 0;
 let opts = { accent: true, sound: true };
 
@@ -161,15 +163,30 @@ function scheduler(){
       if(step % 2 === 0){                   // quarter-note boundary
         scheduleClick(t, step % 8 === 0);  // accent on measure downbeat
       }
-      if(step % 8 === 0){                   // start of each wait measure
-        const m = step / 8 + 1, mt = waitTotal / 8;
+      // Update wait ring every eighth-note step
+      {
+        const progress = step / waitTotal;
         const d = Math.max(0, (t - audioCtx.currentTime) * 1000 - 8);
-        setTimeout(() => {
-          updateModeCounter(`Espera ${m} / ${mt}`);
-        }, d);
+        setTimeout(() => { setWaitRing(progress); }, d);
       }
       nextNoteTime += (60.0 / bpm) * 0.5;
       waitLeft--;
+      // End of wait: if a repeat was requested, go back to the previous exercise first
+      if(waitLeft === 0 && repeatAfterWait){
+        repeatAfterWait = false;
+        currentIdx      = repeatAfterWaitPrevIdx;
+        repeatAfterWaitPrevIdx = -1;
+        loopCount = 0;
+        const d = Math.max(0, (nextNoteTime - audioCtx.currentTime) * 1000 - 16);
+        setTimeout(() => {
+          triggerFadeTransition();
+          document.getElementById('repeatBtn').classList.remove('active');
+        }, d);
+      }
+      if(waitLeft === 0){
+        const d = Math.max(0, (nextNoteTime - audioCtx.currentTime) * 1000 - 16);
+        setTimeout(() => hideWaitRing(), d);
+      }
       continue;
     }
 
@@ -201,9 +218,17 @@ function scheduler(){
       }
       // ── wait2 / wait4: transition fires immediately, then wait measures play ──
       if((currentMode === 'wait2' || currentMode === 'wait4') && loopCount >= 1){
-        waitTotal = (currentMode === 'wait2') ? 16 : 32;
-        waitLeft  = waitTotal;
-        doSeamlessAdvance(nextNoteTime); // advance now — wait plays before new exercise
+        if(repeatPending){
+          // Repeat requested during exercise: replay one more loop, then normal wait+advance
+          repeatPending = false;
+          loopCount = 0;
+          const rb = document.getElementById('repeatBtn');
+          if(rb) rb.classList.remove('active');
+        } else {
+          waitTotal = (currentMode === 'wait2') ? 16 : 32;
+          waitLeft  = waitTotal;
+          doSeamlessAdvance(nextNoteTime); // advance now — wait plays before new exercise
+        }
       }
     }
   }
@@ -219,7 +244,11 @@ function startPlay(){
   scheduledBeatPos = 0;
   loopCount    = 0;
   waitLeft     = 0;
+  repeatPending = false;
+  repeatAfterWait = false;
+  repeatAfterWaitPrevIdx = -1;
   updateModeCounter();
+  updateRepeatBtn();
   nextNoteTime = audioCtx.currentTime + 0.05;
   // Initialise playhead for note 0
   phBeatIdx   = 0;
@@ -235,12 +264,17 @@ function stopPlay(){
   isPlaying = false;
   waitLeft  = 0;
   loopCount = 0;
+  repeatPending = false;
+  repeatAfterWait = false;
+  repeatAfterWaitPrevIdx = -1;
   if(playheadRafId){ cancelAnimationFrame(playheadRafId); playheadRafId = null; }
   clearTimeout(schedulerTimer);
   clearAllBeats();
   document.getElementById('playBtn').classList.remove('playing');
   document.getElementById('playBtn').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  hideWaitRing();
   updateModeCounter();
+  updateRepeatBtn();
 }
 
 function togglePlay(){
@@ -258,20 +292,88 @@ function clearAllBeats(){
   if(ph) ph.style.opacity = '0';
 }
 
-function updateModeCounter(override){
-  const el = document.getElementById('modeCounter');
+function updateRepeatBtn(){
+  const btn = document.getElementById('repeatBtn');
+  if(!btn) return;
+  const show = isPlaying && (currentMode === 'wait2' || currentMode === 'wait4');
+  btn.style.display = show ? 'inline-flex' : 'none';
+  if(!show) btn.classList.remove('active');
+}
+
+function requestRepeat(){
+  if(!isPlaying) return;
+  if(currentMode !== 'wait2' && currentMode !== 'wait4') return;
+  const btn = document.getElementById('repeatBtn');
+  if(waitLeft === 0){
+    // During exercise: set flag to replay one more time at loop boundary
+    repeatPending = true;
+    if(btn) btn.classList.add('active');
+  } else {
+    // During wait: after wait ends, go back to the previous exercise
+    const fi = filteredIdxs.indexOf(currentIdx);
+    if(fi <= 0) return;
+    repeatAfterWait        = true;
+    repeatAfterWaitPrevIdx = filteredIdxs[fi - 1];
+    if(btn) btn.classList.add('active');
+  }
+}
+
+function updateModeCounter(override){  const el = document.getElementById('modeCounter');
   if(!el) return;
   if(override !== undefined){ el.textContent = override; return; }
+  const ring = document.getElementById('waitRing');
+  const fill = document.getElementById('waitRingFill');
   switch(currentMode){
     case 'reps20':
-      el.textContent = `Rep. ${loopCount + 1} / 20`; break;
+      el.style.display = '';
+      el.textContent = `Rep. ${loopCount + 1} / 20`;
+      if(ring) ring.classList.remove('active', 'idle');
+      break;
     case 'wait2':
-      el.textContent = 'Espera · 2c'; break;
     case 'wait4':
-      el.textContent = 'Espera · 4c'; break;
-    default: // libre
-      el.textContent = loopCount || ''; break;
+      el.style.display = '';
+      el.textContent = '';
+      if(ring && fill && !ring.classList.contains('active')){
+        fill.style.animation = 'none';
+        fill.style.strokeDashoffset = '94.25';
+        ring.classList.remove('active');
+        ring.classList.add('idle');
+      }
+      break;
+    default:
+      el.style.display = '';
+      el.textContent = loopCount || '';
+      if(ring) ring.classList.remove('active', 'idle');
+      break;
   }
+}
+
+function setWaitRing(progress){
+  if(progress > 0) return; // single CSS animation handles full depletion
+  const ring = document.getElementById('waitRing');
+  const fill = document.getElementById('waitRingFill');
+  const el   = document.getElementById('modeCounter');
+  if(!ring || !fill) return;
+  const totalDur = (waitTotal * (60 / bpm) * 0.5).toFixed(3);
+  ring.classList.remove('idle');
+  ring.classList.add('active');
+  if(el) el.style.display = 'none';
+  // Cancel any previous animation, snap to full, then start flash + linear deplete
+  fill.style.animation = 'none';
+  fill.style.strokeDashoffset = '0';
+  void fill.getBoundingClientRect(); // reflow to restart
+  fill.style.animation =
+    `wait-ring-flash 0.38s ease-out forwards, wait-ring-deplete ${totalDur}s linear forwards`;
+}
+
+function hideWaitRing(){
+  const ring = document.getElementById('waitRing');
+  const fill = document.getElementById('waitRingFill');
+  const el   = document.getElementById('modeCounter');
+  if(ring) ring.classList.remove('active');
+  if(fill){ fill.style.animation = 'none'; fill.style.strokeDashoffset = '94.25'; }
+  if(el) el.style.display = '';
+  updateModeCounter();
 }
 
 function drawPlayhead(){
@@ -292,10 +394,10 @@ function drawPlayhead(){
 /* ── Pattern data helpers ── */
 function currentPattern(){
   const p = ALL[currentIdx];
-  // Each exercise = 2 measures of 4/4: the 8-note pattern played twice
+  // Each exercise = 2 measures of 4/4: 16 eighth notes
   // dur = note duration in quarter-note beats (0.5 = eighth note)
   const base = p.beats.replace(/\|/g,'').split('').map(h => ({ hand: h, dur: 0.5 }));
-  return [...base, ...base];
+  return base;
 }
 
 function groupsOf(p){
@@ -319,16 +421,18 @@ function toggleBpmDropdown(e){
 }
 
 /* ── Mode ── */
-const MODE_LABELS = { libre:'Libre', reps20:'×20', wait2:'Esp.2', wait4:'Esp.4' };
+const MODE_LABELS = { biblioteca:'Bibl.', reps20:'×20', wait2:'Esp.2', wait4:'Esp.4' };
 function setMode(m){
   currentMode = m;
   document.getElementById('modeDisplay').textContent = MODE_LABELS[m] || m;
-  const isActive = m !== 'libre';
+  const isActive = m !== 'biblioteca';
   document.getElementById('modeTrigger').classList.toggle('mode-active', isActive);
   document.querySelectorAll('.mode-opt').forEach(b =>
     b.classList.toggle('active', b.dataset.mode === m));
   document.getElementById('modeDropdown').classList.remove('open');
   updateModeCounter();
+  updateRepeatBtn();
+  buildLibraryPanel();
 }
 function toggleModeDropdown(e){
   e.stopPropagation();
@@ -369,57 +473,90 @@ function updateTempoPresets(){
   });
 }
 
-/* ── Section tabs ── */
-function buildSectionTabs(){
-  const wrap = document.getElementById('sectionTabs');
+/* ── Page picker ── */
+function updateFilteredIdxs(){
+  if(!selectedPages || selectedPages.size === 0){
+    filteredIdxs = ALL.map((_,i)=>i);
+  } else {
+    filteredIdxs = ALL.reduce((acc,p,i)=>{
+      if(selectedPages.has(p.secId)) acc.push(i);
+      return acc;
+    },[]);
+  }
+}
+
+function buildPagePicker(){
+  const wrap = document.getElementById('pagePicker');
+  if(!wrap) return;
   wrap.innerHTML = '';
   const all = document.createElement('button');
-  all.className = 'section-tab' + (currentSection==='all'?' active':'');
-  all.textContent = 'Todos';
-  all.onclick = ()=>setSection('all');
+  all.className = 'page-btn' + (!selectedPages ? ' active' : '');
+  all.textContent = 'Todas';
+  all.onclick = ()=>{ selectedPages = null; applyPageSelection(); };
   wrap.appendChild(all);
   SECTIONS.forEach(s=>{
     const b = document.createElement('button');
-    b.className = 'section-tab' + (currentSection===s.id?' active':'');
+    b.className = 'page-btn' + (selectedPages && selectedPages.has(s.id) ? ' active' : '');
     b.textContent = s.name;
-    b.onclick = ()=>setSection(s.id);
+    b.onclick = ()=>togglePage(s.id);
     wrap.appendChild(b);
   });
 }
 
-function setSection(id){
-  currentSection = id;
-  if(id==='all') filteredIdxs = ALL.map((_,i)=>i);
-  else filteredIdxs = ALL.reduce((acc,p,i)=>{ if(p.secId===id) acc.push(i); return acc; },[]);
-  currentIdx = filteredIdxs[0]||0;
-  buildSectionTabs();
-  buildChips();
+function togglePage(id){
+  if(!selectedPages){
+    selectedPages = new Set([id]);
+  } else {
+    if(selectedPages.has(id)){
+      selectedPages.delete(id);
+      if(selectedPages.size === 0) selectedPages = null;
+    } else {
+      selectedPages.add(id);
+      if(selectedPages.size === SECTIONS.length) selectedPages = null;
+    }
+  }
+  applyPageSelection();
+}
+
+function applyPageSelection(){
+  updateFilteredIdxs();
+  if(!filteredIdxs.includes(currentIdx)) currentIdx = filteredIdxs[0] || 0;
+  buildPagePicker();
+  buildLibraryPanel();
   renderCard();
   updateNavArrows();
 }
 
-/* ── Chips ── */
-function buildChips(){
-  const wrap = document.getElementById('patternChips');
+/* ── Library panel ── */
+function buildLibraryPanel(){
+  const wrap = document.getElementById('libraryPanel');
+  if(!wrap) return;
+  if(currentMode !== 'biblioteca'){
+    wrap.classList.remove('open');
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.classList.add('open');
   wrap.innerHTML = '';
-  filteredIdxs.forEach((allIdx, fi)=>{
+  filteredIdxs.forEach((allIdx)=>{
     const p = ALL[allIdx];
-    const chip = document.createElement('button');
-    chip.className = 'pattern-chip' + (allIdx===currentIdx?' active':'');
-    chip.innerHTML = `<span class="chip-dot"></span>Ej. ${p.ex}${done.has(allIdx)?'<span class="chip-done">✓</span>':''}`;
-    chip.onclick = ()=>{ selectPattern(allIdx, allIdx>currentIdx?1:-1); };
-    wrap.appendChild(chip);
+    const item = document.createElement('button');
+    item.className = 'library-item' + (allIdx === currentIdx ? ' active' : '');
+    item.dataset.idx = allIdx;
+    item.innerHTML = `<span class="lib-ex">${p.secName} &middot; Ej.\u00a0${p.ex}</span><span class="lib-beats">${p.beats.replace(/\|/g,' ')}</span>`;
+    item.onclick = ()=>selectPattern(allIdx, allIdx > currentIdx ? 1 : -1);
+    wrap.appendChild(item);
   });
 }
 
-function refreshChips(){
-  const chips = document.querySelectorAll('.pattern-chip');
-  filteredIdxs.forEach((allIdx,fi)=>{
-    const chip = chips[fi];
-    if(!chip) return;
-    chip.className = 'pattern-chip' + (allIdx===currentIdx?' active':'');
-    chip.innerHTML = `<span class="chip-dot"></span>Ej. ${ALL[allIdx].ex}${done.has(allIdx)?'<span class="chip-done">✓</span>':''}`;
+function refreshLibraryPanel(){
+  if(currentMode !== 'biblioteca') return;
+  document.querySelectorAll('.library-item').forEach(item=>{
+    const idx = +item.dataset.idx;
+    item.classList.toggle('active', idx === currentIdx);
   });
+  const active = document.querySelector('.library-item.active');
+  if(active) active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 /* ── Beat SVG renderer ── */
@@ -451,12 +588,13 @@ function buildBeatSVG(groups){
   let globalBeat = 0;
   [0, 1].forEach(mi => {
     let x = lPad + mi * (measureW + barGap); // m1: 12, m2: 364
-    groups.forEach((group, gi) => {
+    const measureGroups = groups.slice(mi * 2, mi * 2 + 2);
+    measureGroups.forEach((group, gi) => {
       if(gi > 0) x += groupGap;
       const bx1 = x + 6, bx2 = x + (group.length - 1) * noteW + 6;
       s += `<rect x="${bx1}" y="${beamY}" width="${bx2-bx1}" height="${beamH}" rx="2.5" fill="${noteC}"/>`;
       group.forEach(hand => {
-        const h = hand.toUpperCase() === 'D' ? 'R' : 'L';
+        const h = hand.toUpperCase() === 'R' ? 'R' : 'L';
         s += `<g class="beat-cell ${h}" data-beat="${globalBeat}">`;
         s += `<rect class="beat-bg" x="${x-13}" y="${beamY-4}" width="38" height="68" rx="7" fill="transparent"/>`;
         s += `<line x1="${x+6}" y1="${noteY-5}" x2="${x+6}" y2="${beamY}" stroke="${noteC}" stroke-width="2" stroke-linecap="round"/>`;
@@ -479,7 +617,7 @@ function renderCard(dir){
   document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
   const pn = document.getElementById('patternName');
   if(pn) pn.textContent = p.beats.replace(/\|/g,' · ');
-  document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
+  document.getElementById('doneBtn')?.classList.toggle('active', done.has(currentIdx));
 
   // Build beat display
   const disp = document.getElementById('beatDisplay');
@@ -507,7 +645,7 @@ function selectPattern(allIdx, dir){
     currentIdx = allIdx;
     renderCard(dir);
   }
-  refreshChips();
+  refreshLibraryPanel();
   updateNavArrows();
 }
 
@@ -556,8 +694,8 @@ function triggerSlideTransition(){
     const p = ALL[currentIdx];
     disp.innerHTML = buildBeatSVG(groupsOf(p));
     document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
-    document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
-    renderNextPreview(); refreshChips(); updateNavArrows();
+    document.getElementById('doneBtn')?.classList.toggle('active', done.has(currentIdx));
+    renderNextPreview(); refreshLibraryPanel(); updateNavArrows();
     return;
   }
   const shift = nextDisp.offsetTop - disp.offsetTop; // exact px gap between the two
@@ -582,8 +720,8 @@ function triggerSlideTransition(){
     const p = ALL[currentIdx];
     disp.innerHTML = buildBeatSVG(groupsOf(p));
     document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
-    document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
-    renderNextPreview(); refreshChips(); updateNavArrows();
+    document.getElementById('doneBtn')?.classList.toggle('active', done.has(currentIdx));
+    renderNextPreview(); refreshLibraryPanel(); updateNavArrows();
     // Fade in new next preview
     requestAnimationFrame(() => requestAnimationFrame(() => {
       nextDisp.style.transition = 'opacity 0.28s ease';
@@ -601,7 +739,7 @@ function triggerFadeTransition(){
   const p = ALL[currentIdx];
   disp.innerHTML = buildBeatSVG(groupsOf(p));
   document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
-  document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
+  document.getElementById('doneBtn')?.classList.toggle('active', done.has(currentIdx));
   renderNextPreview();
   // Quick fade-in on the new content
   disp.style.opacity  = '0';
@@ -618,16 +756,16 @@ function toggleDone(){
   if(done.has(currentIdx)) done.delete(currentIdx);
   else done.add(currentIdx);
   localStorage.setItem('scDone', JSON.stringify([...done]));
-  document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
-  refreshChips();
+  document.getElementById('doneBtn')?.classList.toggle('active', done.has(currentIdx));
+  refreshLibraryPanel();
   updateProgress();
 }
 
 function updateProgress(){
   const n = done.size;
-  document.getElementById('doneCount').textContent = n;
-  document.getElementById('totalCount').textContent = TOTAL;
-  document.getElementById('progressFill').style.width = (n/TOTAL*100)+'%';
+  const dc = document.getElementById('doneCount'); if(dc) dc.textContent = n;
+  const tc = document.getElementById('totalCount'); if(tc) tc.textContent = TOTAL;
+  const pf = document.getElementById('progressFill'); if(pf) pf.style.width = (n/TOTAL*100)+'%';
 }
 
 /* ── Keyboard shortcuts ── */
@@ -640,8 +778,7 @@ document.addEventListener('keydown', e=>{
 
 /* ── Init ── */
 function init(){
-  buildSectionTabs();
-  buildChips();
+  buildPagePicker();
   buildTempoPresets();
   renderCard();
   updateNavArrows();
