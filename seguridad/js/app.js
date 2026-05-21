@@ -43,24 +43,47 @@ function configureDashboardLayout() {
   const grid = document.querySelector('.dash-grid');
   if (!grid) return;
 
-  const preferredOrder = [
+  // Explicit full order — row by row:
+  //  Row 1 : events(3) + countries(1)
+  //  Row 2 : worldmap(4)
+  //  Row 3 : net(4)
+  //  Row 4 : heatmap(3) + usernames(1)
+  //  Row 5 : f2b(4)
+  //  Row 6 : ssh(4)
+  //  Row 7 : gauge × 3 + vpn(1)
+  //  Row 8 : hourly(4)
+  //  Row 9 : sessions(2) + services(2)
+  //  Row 10: updates(2) anchored cols 3-4 (bottom-right)
+  const singles = [
     '.card-events',
     '.card-countries',
-    '.card-vpn',
     '.card-worldmap',
     '.card-net',
     '.card-heatmap',
     '.card-usernames',
     '.card-f2b',
+    '.card-ssh',
   ];
 
-  const preferredNodes = preferredOrder
-    .map(selector => grid.querySelector(selector))
+  const orderedNodes = singles
+    .map(s => grid.querySelector(s))
     .filter(Boolean);
 
-  const preferredSet = new Set(preferredNodes);
-  const remaining = Array.from(grid.children).filter(card => !preferredSet.has(card));
-  [...preferredNodes, ...remaining].forEach(card => grid.appendChild(card));
+  // All three gauges + vpn share row 7
+  Array.from(grid.querySelectorAll('.card-gauge')).forEach(el => orderedNodes.push(el));
+  const vpn = grid.querySelector('.card-vpn');
+  if (vpn) orderedNodes.push(vpn);
+
+  // Bottom rows
+  ['.card-hourly', '.card-sessions', '.card-updates', '.card-services'].forEach(s => {
+    const el = grid.querySelector(s);
+    if (el) orderedNodes.push(el);
+  });
+
+  // Append any cards not yet placed
+  const orderedSet = new Set(orderedNodes);
+  const remaining = Array.from(grid.children).filter(card => !orderedSet.has(card));
+  [...orderedNodes, ...remaining].forEach(card => grid.appendChild(card));
 }
 
 // ─── Polling ─────────────────────────────────────────────────────────────────
@@ -719,29 +742,65 @@ function renderServices(services) {
 }
 
 // ─── Eventos ──────────────────────────────────────────────────────────────────
+// Maps msgClass → short badge label + CSS modifier
+const BADGE_MAP = {
+  'msg-ban':          { label: 'BANEADO',        cls: 'badge-ban'          },
+  'msg-unban':        { label: 'DESBANEADO',     cls: 'badge-unban'        },
+  'msg-invalid-user': { label: 'USR INVÁLIDO',   cls: 'badge-invalid-user' },
+  'msg-bad-creds':    { label: 'CREDENCIALES',   cls: 'badge-bad-creds'    },
+  'msg-auth-fail':    { label: 'AUTH FAIL',       cls: 'badge-auth-fail'    },
+  'msg-timeout':      { label: 'TIMEOUT',         cls: 'badge-timeout'      },
+  'msg-reset':        { label: 'RESET',           cls: 'badge-reset'        },
+  'msg-closed':       { label: 'CERRADO',         cls: 'badge-closed'       },
+  'msg-preauth':      { label: 'PREAUTH',         cls: 'badge-preauth'      },
+  'msg-generic':      { label: 'EVENTO',          cls: 'badge-generic'      },
+};
+
 function renderEvents(events) {
   const list = document.getElementById('events-list');
   if (!list) return;
 
   setText('events-updated', `últ. actualiz: ${new Date().toLocaleTimeString('es-ES')}`);
-  list.classList.add('terminal-feed');
 
   if (!events?.length) {
     list.innerHTML = '<div class="feed-empty">Sin eventos recientes</div>';
     return;
   }
 
-  list.innerHTML = events.map(ev => {
+  const header = `<div class="feed-header">
+    <span></span>
+    <span class="feed-th">HORA</span>
+    <span class="feed-th">EVENTO</span>
+    <span class="feed-th">IP ORIGEN</span>
+    <span class="feed-th">PAÍS</span>
+    <span class="feed-th">MENSAJE</span>
+    <span class="feed-th th-right">PUERTO</span>
+  </div>`;
+
+  const rows = events.map(ev => {
     const parsed = parseEventForFeed(ev);
-    return `<div class="feed-line ${parsed.tone}">` +
+    const badge  = BADGE_MAP[parsed.msgClass] || BADGE_MAP['msg-generic'];
+
+    const countryDisp = parsed.country ? esc(parsed.country) : '—';
+    const userDisp    = parsed.detail  ? esc(parsed.detail)  : '—';
+    const portDisp    = (!parsed.isBanOrUnban && parsed.port && parsed.port !== '—') ? esc(parsed.port) : '—';
+
+    const countryClass = parsed.country ? 'feed-country' : 'feed-country feed-empty-cell';
+    const userClass    = parsed.detail  ? 'feed-user'    : 'feed-user feed-empty-cell';
+    const portClass    = portDisp !== '—' ? 'feed-port'    : 'feed-port feed-empty-cell';
+
+    return `<div class="feed-row ${parsed.tone}">` +
+      `<span class="feed-dot"></span>` +
       `<span class="feed-ts">${esc(parsed.syslogTs)}</span>` +
-      `<span class="feed-msg">${esc(parsed.msg)}</span>` +
-      `<span class="feed-from">from</span>` +
+      `<span class="feed-event"><span class="feed-badge ${badge.cls}">${badge.label}</span></span>` +
       `<span class="feed-ip">${esc(parsed.ip)}</span>` +
-      `<span class="feed-port-word">port</span>` +
-      `<span class="feed-port">${esc(parsed.port)}</span>` +
+      `<span class="${countryClass}">${countryDisp}</span>` +
+      `<span class="${userClass}">${userDisp}</span>` +
+      `<span class="${portClass}">${portDisp}</span>` +
       `</div>`;
   }).join('');
+
+  list.innerHTML = header + rows;
 }
 
 function formatSyslogTs(d) {
@@ -773,17 +832,51 @@ function parseEventForFeed(ev) {
 
   const msg = label || raw || 'Evento detectado';
 
+  // Country: prefer explicit field, fall back to empty
+  const country = String(ev?.country || ev?.country_name || '').trim();
+
+  // Username: prefer explicit field, then extract from log text
+  const fullText = `${label} ${raw}`;
+  const user = String(
+    ev?.user || ev?.username ||
+    extractFromText(fullText, /(?:invalid user|failed password for|disconnected (?:from )?(?:invalid user)?|authenticating user)\s+(\S+)/i, 1) ||
+    ''
+  ).trim();
+
+  // Detail to show: username takes priority; otherwise infer reason when it's an attempt
+  let detail = '';
+  if (user && user !== ip && !['from', 'port', 'invalid', 'failed', 'auth'].includes(user.toLowerCase())) {
+    detail = user;
+  } else if (!isBan && !isUnban) {
+    detail = inferAttemptReason(sourceText, '');
+  }
+
   let tone = 'tone-attempt';
   if (isBan)   tone = 'tone-ban';
   if (isUnban) tone = 'tone-unban';
 
-  return { syslogTs, msg, ip, port, tone };
+  // Message colour class based on event subtype
+  let msgClass = '';
+  if (isBan)   msgClass = 'msg-ban';
+  else if (isUnban) msgClass = 'msg-unban';
+  else if (/usuario inv[aá]lido|invalid user/.test(sourceText))                   msgClass = 'msg-invalid-user';
+  else if (/failed password|contrase[nñ]a incorrecta/.test(sourceText))            msgClass = 'msg-bad-creds';
+  else if (/timed? out|timeout/.test(sourceText))                                  msgClass = 'msg-timeout';
+  else if (/connection reset|reset by peer/.test(sourceText))                      msgClass = 'msg-reset';
+  else if (/connection closed|closed by/.test(sourceText))                         msgClass = 'msg-closed';
+  else if (/authentication failure|auth failed/.test(sourceText))                  msgClass = 'msg-auth-fail';
+  else if (/did not receive ident|no id|preauth/.test(sourceText))                 msgClass = 'msg-preauth';
+  else                                                                              msgClass = 'msg-generic';
+
+  return { syslogTs, msg, ip, port, country, detail, isBanOrUnban: isBan || isUnban, tone, msgClass };
 }
 
 function inferAttemptReason(sourceText, fallbackLabel) {
   if (/usuario inv[aá]lido|invalid user/.test(sourceText)) return 'usuario no existe';
   if (/failed password|contrase[nñ]a/.test(sourceText)) return 'credenciales incorrectas';
   if (/authentication failure|auth failed|authentic/.test(sourceText)) return 'fallo de autenticación';
+  if (/timed? out|timeout/.test(sourceText)) return 'tiempo de espera agotado';
+  if (/connection reset|reset by peer/.test(sourceText)) return 'conexión reseteada';
   if (/connection closed|closed by/.test(sourceText)) return 'conexión cerrada antes de autenticar';
   return fallbackLabel || 'acceso rechazado';
 }
