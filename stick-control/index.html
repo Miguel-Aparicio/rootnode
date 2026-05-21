@@ -38,7 +38,10 @@
           <div class="pattern-ex" id="patternEx"></div>
           <button class="done-btn" id="doneBtn" title="Marcar como practicado" onclick="toggleDone()">✓</button>
         </div>
-        <div class="beat-display" id="beatDisplay"></div>
+        <div class="exercises-stack" id="exercisesStack">
+          <div class="beat-display" id="beatDisplay"></div>
+          <div class="beat-display" id="beatDisplayNext"></div>
+        </div>
         <div class="controls">
           <div class="play-row">
             <button class="play-btn" id="playBtn" onclick="togglePlay()">
@@ -54,6 +57,7 @@
                   <span id="modeDisplay">Modo</span>
                 </button>
                 <div class="bpm-dropdown" id="modeDropdown">
+                  <button class="mode-opt" data-mode="libre" onclick="setMode('libre')">Libre (sin avance)</button>
                   <button class="mode-opt" data-mode="reps20" onclick="setMode('reps20')">20 repeticiones</button>
                   <button class="mode-opt" data-mode="wait2" onclick="setMode('wait2')">Espera 2 compases</button>
                   <button class="mode-opt" data-mode="wait4" onclick="setMode('wait4')">Espera 4 compases</button>

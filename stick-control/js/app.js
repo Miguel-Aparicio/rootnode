@@ -109,9 +109,9 @@ let done = new Set(JSON.parse(localStorage.getItem('scDone')||'[]'));
 let bpm = 80;
 let isPlaying = false;
 let loopCount = 0;
-let currentMode  = 'libre'; // 'libre' | 'reps20' | 'wait2' | 'wait4'
-let countInLeft  = 0;
-let countInTotal = 0;
+let currentMode  = 'reps20'; // 'libre' | 'reps20' | 'wait2' | 'wait4'
+let waitLeft     = 0;  // eighth-note steps remaining in between-exercise wait phase
+let waitTotal    = 0;  // total steps in current wait phase (for UI label)
 let currentBeat = 0;
 let opts = { accent: true, sound: true };
 
@@ -150,26 +150,29 @@ function scheduleClick(time, isAccent){
 }
 
 function scheduler(){
-  const pat = currentPattern();
-  const len = pat.length;
   while(nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD){
+    const pat = currentPattern(); // re-fetched each note — enables seamless pattern switching
+    const len = pat.length;
     const t = nextNoteTime;
 
-    // ── Count-in phase (wait2 / wait4 modes) ──
-    if(countInLeft > 0){
-      const step = countInTotal - countInLeft;
+    // ── Wait phase: blank measures between exercises (wait2 / wait4 modes) ──
+    if(waitLeft > 0){
+      const step = waitTotal - waitLeft;
       if(step % 2 === 0){                   // quarter-note boundary
         scheduleClick(t, step % 8 === 0);  // accent on measure downbeat
       }
-      if(step % 8 === 0){                   // start of each count-in measure
-        const m = step / 8 + 1, mt = countInTotal / 8;
+      if(step % 8 === 0){                   // start of each wait measure
+        const m = step / 8 + 1, mt = waitTotal / 8;
         const d = Math.max(0, (t - audioCtx.currentTime) * 1000 - 8);
         setTimeout(() => {
-          document.getElementById('beatCounterLabel').textContent = `Entrada: ${m} / ${mt}`;
+          document.getElementById('beatCounterLabel').textContent = `Espera: ${m} / ${mt}`;
         }, d);
       }
       nextNoteTime += (60.0 / bpm) * 0.5;
-      countInLeft--;
+      waitLeft--;
+      if(waitLeft === 0){
+        doSeamlessAdvance(nextNoteTime); // advance seamlessly right as wait ends
+      }
       continue;
     }
 
@@ -195,10 +198,14 @@ function scheduler(){
     if(scheduledBeat === 0){
       loopCount++;
       scheduledBeatPos = 0;
-      // ── reps20 auto-advance ──
+      // ── reps20: seamless advance after 20 loops ──
       if(currentMode === 'reps20' && loopCount >= 20){
-        setTimeout(() => { navigate(1); startPlay(); }, 0);
-        return;
+        doSeamlessAdvance(nextNoteTime);
+      }
+      // ── wait2 / wait4: enter wait phase after 1 loop ──
+      if((currentMode === 'wait2' || currentMode === 'wait4') && loopCount >= 1){
+        waitTotal = (currentMode === 'wait2') ? 16 : 32;
+        waitLeft  = waitTotal;
       }
     }
   }
@@ -213,8 +220,7 @@ function startPlay(){
   scheduledBeat = 0;
   scheduledBeatPos = 0;
   loopCount    = 0;
-  countInTotal = (currentMode === 'wait2') ? 16 : (currentMode === 'wait4') ? 32 : 0;
-  countInLeft  = countInTotal;
+  waitLeft     = 0;
   nextNoteTime = audioCtx.currentTime + 0.05;
   // Initialise playhead for note 0
   phBeatIdx   = 0;
@@ -228,6 +234,7 @@ function startPlay(){
 
 function stopPlay(){
   isPlaying = false;
+  waitLeft  = 0;
   if(playheadRafId){ cancelAnimationFrame(playheadRafId); playheadRafId = null; }
   clearTimeout(schedulerTimer);
   clearAllBeats();
@@ -249,7 +256,7 @@ function advanceBeatUI(beat, totalBeats){
 }
 
 function clearAllBeats(){
-  const ph = document.querySelector('.playhead');
+  const ph = document.querySelector('#beatDisplay .playhead');
   if(ph) ph.style.opacity = '0';
   document.getElementById('beatCounterLabel').textContent = 'Pulso: — / ' + currentPattern().length;
 }
@@ -261,7 +268,7 @@ function drawPlayhead(){
   const x0  = PH_NOTE_X[phBeatIdx];
   const x1  = phBeatIdx < 15 ? PH_NOTE_X[phBeatIdx + 1] : PH_NOTE_X_END;
   const pct = (x0 + (x1 - x0) * progress) / PH_VBW * 100;
-  const ph  = document.querySelector('.playhead');
+  const ph  = document.querySelector('#beatDisplay .playhead');
   if(ph){
     ph.style.left    = pct + '%';
     ph.style.opacity = '1';
@@ -299,10 +306,10 @@ function toggleBpmDropdown(e){
 }
 
 /* ── Mode ── */
-const MODE_LABELS = { libre:'Modo', reps20:'×20', wait2:'Esp.2', wait4:'Esp.4' };
+const MODE_LABELS = { libre:'Libre', reps20:'×20', wait2:'Esp.2', wait4:'Esp.4' };
 function setMode(m){
   currentMode = m;
-  document.getElementById('modeDisplay').textContent = MODE_LABELS[m] || 'Modo';
+  document.getElementById('modeDisplay').textContent = MODE_LABELS[m] || m;
   const isActive = m !== 'libre';
   document.getElementById('modeTrigger').classList.toggle('mode-active', isActive);
   document.querySelectorAll('.mode-opt').forEach(b =>
@@ -415,9 +422,6 @@ function buildBeatSVG(groups){
 
   let s = `<svg viewBox="0 0 ${vbW} ${vbH}" class="beat-svg" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">`;
 
-  // White score background — bigger, breathing room around notes
-  s += `<rect x="2" y="16" width="${vbW-4}" height="88" rx="8" fill="#f8fafc" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>`;
-
   // Staff line (full width, at note-head level)
   const staffX1 = lPad - 4, staffX2 = vbW - rPad + 2; // x=8 .. x=698
   s += `<line x1="${staffX1}" y1="${noteY}" x2="${staffX2}" y2="${noteY}" stroke="${staffC}" stroke-width="1.5"/>`;
@@ -467,6 +471,7 @@ function renderCard(dir){
   const disp = document.getElementById('beatDisplay');
   const groups = groupsOf(p);
   disp.innerHTML = buildBeatSVG(groups);
+  renderNextPreview();
 
   document.getElementById('beatCounterLabel').textContent = 'Pulso: — / ' + currentPattern().length;
 
@@ -479,9 +484,17 @@ function renderCard(dir){
 }
 
 function selectPattern(allIdx, dir){
-  if(isPlaying) stopPlay();
-  currentIdx = allIdx;
-  renderCard(dir);
+  if(isPlaying){
+    // Audio: stop, switch, restart immediately (< 5 ms gap)
+    stopPlay();
+    currentIdx = allIdx;
+    startPlay();
+    // Visual: crossfade to new exercise (content updated instantly so playhead is correct)
+    triggerFadeTransition();
+  } else {
+    currentIdx = allIdx;
+    renderCard(dir);
+  }
   refreshChips();
   updateNavArrows();
 }
@@ -499,6 +512,93 @@ function updateNavArrows(){
   const next = document.getElementById('navNext');
   if(prev) prev.disabled = fi <= 0;
   if(next) next.disabled = fi >= filteredIdxs.length - 1;
+}
+
+/* ── Seamless transitions ── */
+function renderNextPreview(){
+  const nextDisp = document.getElementById('beatDisplayNext');
+  if(!nextDisp) return;
+  const fi = filteredIdxs.indexOf(currentIdx);
+  if(fi >= filteredIdxs.length - 1){ nextDisp.innerHTML = ''; return; }
+  const p = ALL[filteredIdxs[fi + 1]];
+  nextDisp.innerHTML = buildBeatSVG(groupsOf(p));
+}
+
+function doSeamlessAdvance(transitionAudioTime){
+  const fi = filteredIdxs.indexOf(currentIdx);
+  if(fi >= filteredIdxs.length - 1) return; // already at last exercise
+  currentIdx = filteredIdxs[fi + 1];
+  loopCount  = 0;
+  // Fire visual slide to coincide with the audio beat
+  const delay = Math.max(0, (transitionAudioTime - audioCtx.currentTime) * 1000 - 16);
+  setTimeout(triggerSlideTransition, delay);
+}
+
+/* Smooth slide: preview rises to become main, new preview fades in below.
+   Used by reps20 auto-advance (always sequential). */
+function triggerSlideTransition(){
+  const disp     = document.getElementById('beatDisplay');
+  const nextDisp = document.getElementById('beatDisplayNext');
+  // No preview — instant swap
+  if(!nextDisp || !nextDisp.firstElementChild){
+    const p = ALL[currentIdx];
+    disp.innerHTML = buildBeatSVG(groupsOf(p));
+    document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
+    document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
+    renderNextPreview(); refreshChips(); updateNavArrows();
+    return;
+  }
+  const shift = nextDisp.offsetTop - disp.offsetTop; // exact px gap between the two
+  const dur   = 260;
+  const ease  = 'cubic-bezier(0.4,0,0.2,1)';
+  // Old main: fade out + float up slightly
+  disp.style.transition = `transform ${dur}ms ${ease}, opacity ${dur}ms ease`;
+  disp.style.transform  = `translateY(-${Math.round(shift * 0.35)}px)`;
+  disp.style.opacity    = '0';
+  // Preview → becomes new main: slide up to main position + brighten
+  nextDisp.style.transition = `transform ${dur}ms ${ease}, opacity ${dur}ms ease`;
+  nextDisp.style.transform  = `translateY(-${shift}px)`;
+  nextDisp.style.opacity    = '1';
+  setTimeout(() => {
+    disp.style.transition     = 'none';
+    nextDisp.style.transition = 'none';
+    disp.style.transform      = '';
+    disp.style.opacity        = '';
+    nextDisp.style.transform  = '';
+    nextDisp.style.opacity    = '0';
+    // Render new current exercise
+    const p = ALL[currentIdx];
+    disp.innerHTML = buildBeatSVG(groupsOf(p));
+    document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
+    document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
+    renderNextPreview(); refreshChips(); updateNavArrows();
+    // Fade in new next preview
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      nextDisp.style.transition = 'opacity 0.28s ease';
+      nextDisp.style.opacity    = ''; // revert to CSS 0.38
+      setTimeout(() => { nextDisp.style.transition = ''; }, 320);
+    }));
+  }, dur + 20);
+}
+
+/* Quick crossfade: for manual navigation while playing.
+   Content updated immediately so playhead tracks the correct (new) exercise. */
+function triggerFadeTransition(){
+  const disp     = document.getElementById('beatDisplay');
+  const nextDisp = document.getElementById('beatDisplayNext');
+  const p = ALL[currentIdx];
+  disp.innerHTML = buildBeatSVG(groupsOf(p));
+  document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
+  document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
+  renderNextPreview();
+  // Quick fade-in on the new content
+  disp.style.opacity  = '0';
+  disp.style.transition = 'none';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    disp.style.transition = 'opacity 0.18s ease';
+    disp.style.opacity    = '';
+    setTimeout(() => { disp.style.transition = ''; }, 200);
+  }));
 }
 
 /* ── Progress ── */
@@ -534,6 +634,7 @@ function init(){
   renderCard();
   updateNavArrows();
   updateProgress();
+  setMode(currentMode); // apply default mode to button UI
 }
 
 init();

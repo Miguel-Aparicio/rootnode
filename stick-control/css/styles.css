@@ -150,8 +150,19 @@ nav .title { color: var(--text); font-weight: 600; font-size: 0.86rem; letter-sp
 .done-btn:hover { color: var(--text); transform: scale(1.2); }
 .done-btn.active { color: #4ade80; }
 /* ── Sticking beat display ── */
-.beat-display {
+.exercises-stack {
+  position: relative;
   margin-bottom: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+#beatDisplayNext {
+  opacity: 0.38;
+  border-top: 1px solid rgba(0,0,0,0.07);
 }
 .beat-wrap {
   position: relative;
@@ -207,7 +218,7 @@ nav .title { color: var(--text); font-weight: 600; font-size: 0.86rem; letter-sp
   transition: background 0.12s, border-color 0.12s;
 }
 .bpm-trigger:hover { background: rgba(255,255,255,0.09); border-color: rgba(56,189,248,0.35); }
-#bpmDisplay { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+#bpmDisplay, #modeDisplay { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
 .bpm-unit { font-size: 0.7rem; color: var(--muted); font-weight: 500; }
 .bpm-dropdown {
   display: none;
