@@ -109,6 +109,9 @@ let done = new Set(JSON.parse(localStorage.getItem('scDone')||'[]'));
 let bpm = 80;
 let isPlaying = false;
 let loopCount = 0;
+let currentMode  = 'libre'; // 'libre' | 'reps20' | 'wait2' | 'wait4'
+let countInLeft  = 0;
+let countInTotal = 0;
 let currentBeat = 0;
 let opts = { accent: true, sound: true };
 
@@ -150,9 +153,29 @@ function scheduler(){
   const pat = currentPattern();
   const len = pat.length;
   while(nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD){
+    const t = nextNoteTime;
+
+    // ── Count-in phase (wait2 / wait4 modes) ──
+    if(countInLeft > 0){
+      const step = countInTotal - countInLeft;
+      if(step % 2 === 0){                   // quarter-note boundary
+        scheduleClick(t, step % 8 === 0);  // accent on measure downbeat
+      }
+      if(step % 8 === 0){                   // start of each count-in measure
+        const m = step / 8 + 1, mt = countInTotal / 8;
+        const d = Math.max(0, (t - audioCtx.currentTime) * 1000 - 8);
+        setTimeout(() => {
+          document.getElementById('beatCounterLabel').textContent = `Entrada: ${m} / ${mt}`;
+        }, d);
+      }
+      nextNoteTime += (60.0 / bpm) * 0.5;
+      countInLeft--;
+      continue;
+    }
+
+    // ── Normal beat ──
     const beat = scheduledBeat;
     const note = pat[beat];
-    const t    = nextNoteTime;
     // Only click on quarter-note boundaries; accent on measure downbeat (every 4 beats)
     if(scheduledBeatPos % 1 === 0){
       scheduleClick(t, opts.accent && scheduledBeatPos % 4 === 0);
@@ -172,6 +195,11 @@ function scheduler(){
     if(scheduledBeat === 0){
       loopCount++;
       scheduledBeatPos = 0;
+      // ── reps20 auto-advance ──
+      if(currentMode === 'reps20' && loopCount >= 20){
+        setTimeout(() => { navigate(1); startPlay(); }, 0);
+        return;
+      }
     }
   }
   schedulerTimer = setTimeout(scheduler, LOOKAHEAD);
@@ -184,7 +212,9 @@ function startPlay(){
   currentBeat = 0;
   scheduledBeat = 0;
   scheduledBeatPos = 0;
-  loopCount = 0;
+  loopCount    = 0;
+  countInTotal = (currentMode === 'wait2') ? 16 : (currentMode === 'wait4') ? 32 : 0;
+  countInLeft  = countInTotal;
   nextNoteTime = audioCtx.currentTime + 0.05;
   // Initialise playhead for note 0
   phBeatIdx   = 0;
@@ -259,10 +289,37 @@ function setBpm(v){
   bpm = Math.max(30, Math.min(220, v));
   document.getElementById('bpmDisplay').textContent = bpm;
   document.getElementById('bpmSlider').value = bpm;
-  const bpmSvgLabel = document.getElementById('bpm-svg-label');
-  if(bpmSvgLabel) bpmSvgLabel.textContent = bpm + ' BPM';
   updateTempoPresets();
 }
+
+/* ── BPM dropdown ── */
+function toggleBpmDropdown(e){
+  e.stopPropagation();
+  document.getElementById('bpmDropdown').classList.toggle('open');
+}
+
+/* ── Mode ── */
+const MODE_LABELS = { libre:'Modo', reps20:'×20', wait2:'Esp.2', wait4:'Esp.4' };
+function setMode(m){
+  currentMode = m;
+  document.getElementById('modeDisplay').textContent = MODE_LABELS[m] || 'Modo';
+  const isActive = m !== 'libre';
+  document.getElementById('modeTrigger').classList.toggle('mode-active', isActive);
+  document.querySelectorAll('.mode-opt').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === m));
+  document.getElementById('modeDropdown').classList.remove('open');
+}
+function toggleModeDropdown(e){
+  e.stopPropagation();
+  document.getElementById('modeDropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', function(){
+  const dd = document.getElementById('bpmDropdown');
+  if(dd) dd.classList.remove('open');
+  const md = document.getElementById('modeDropdown');
+  if(md) md.classList.remove('open');
+});
 
 const TEMPO_PRESETS = [
   { label:'Lento',   bpm: 60  },
@@ -346,25 +403,33 @@ function refreshChips(){
 
 /* ── Beat SVG renderer ── */
 // Single combined SVG: both measures + barline in the middle.
-// White score box; note heads/stems/beams in black; R/L labels in colour.
+// Score-style: white box, staff line, proper barlines, black note elements + labels.
 function buildBeatSVG(groups){
-  const colR  = '#fb7185', colL = '#60a5fa';
-  const noteC = '#1e293b'; // stems, noteheads, beams
-  const barC  = 'rgba(30,41,59,0.2)';
+  const noteC  = '#2a3f52'; // note heads, stems, beams, labels
+  const staffC = '#b8c8d4'; // staff line + barlines (subtle on white)
   const noteW = 40, groupGap = 12, lPad = 12, rPad = 10, barGap = 20;
-  const noteY = 58, beamY = noteY - 38, beamH = 5;
+  const noteY = 72, beamY = noteY - 38, beamH = 5; // beamY = 34
   const measureW = 8 * noteW + groupGap; // 332
   const vbW = lPad + measureW + barGap + measureW + rPad; // 706
-  const vbH = 90;
+  const vbH = 108;
 
   let s = `<svg viewBox="0 0 ${vbW} ${vbH}" class="beat-svg" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">`;
 
-  // White score background
-  s += `<rect x="4" y="6" width="${vbW-8}" height="80" rx="8" fill="#f8fafc" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>`;
+  // White score background — bigger, breathing room around notes
+  s += `<rect x="2" y="16" width="${vbW-4}" height="88" rx="8" fill="#f8fafc" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>`;
 
-  // BPM label — top-right, above the beam
-  s += `<text id="bpm-svg-label" x="${vbW-12}" y="${beamY-4}" text-anchor="end" fill="#64748b" font-size="11" font-weight="600" font-family="Inter,sans-serif">${bpm} BPM</text>`;
+  // Staff line (full width, at note-head level)
+  const staffX1 = lPad - 4, staffX2 = vbW - rPad + 2; // x=8 .. x=698
+  s += `<line x1="${staffX1}" y1="${noteY}" x2="${staffX2}" y2="${noteY}" stroke="${staffC}" stroke-width="1.5"/>`;
 
+  // Opening barline (left edge)
+  s += `<line x1="${staffX1}" y1="${beamY-2}" x2="${staffX1}" y2="${noteY+7}" stroke="${staffC}" stroke-width="2" stroke-linecap="round"/>`;
+  // Closing barline (right edge)
+  s += `<line x1="${staffX2}" y1="${beamY-2}" x2="${staffX2}" y2="${noteY+7}" stroke="${staffC}" stroke-width="2" stroke-linecap="round"/>`;
+  // Mid-measure barline (between the two measures)
+  const midBarX = lPad + measureW + barGap / 2; // 354
+  s += `<line x1="${midBarX}" y1="${beamY-2}" x2="${midBarX}" y2="${noteY+7}" stroke="${staffC}" stroke-width="1.5" stroke-linecap="round"/>`;
+  // Notes
   let globalBeat = 0;
   [0, 1].forEach(mi => {
     let x = lPad + mi * (measureW + barGap); // m1: 12, m2: 364
@@ -373,24 +438,18 @@ function buildBeatSVG(groups){
       const bx1 = x + 6, bx2 = x + (group.length - 1) * noteW + 6;
       s += `<rect x="${bx1}" y="${beamY}" width="${bx2-bx1}" height="${beamH}" rx="2.5" fill="${noteC}"/>`;
       group.forEach(hand => {
-        const isRight = hand.toUpperCase() === 'D';
-        const h   = isRight ? 'R' : 'L';
-        const col = isRight ? colR : colL; // label colour only
+        const h = hand.toUpperCase() === 'D' ? 'R' : 'L';
         s += `<g class="beat-cell ${h}" data-beat="${globalBeat}">`;
         s += `<rect class="beat-bg" x="${x-13}" y="${beamY-4}" width="38" height="68" rx="7" fill="transparent"/>`;
-        s += `<line x1="${x+6}" y1="${noteY-5}" x2="${x+6}" y2="${noteY-38}" stroke="${noteC}" stroke-width="2.5" stroke-linecap="round"/>`;
-        s += `<ellipse cx="${x}" cy="${noteY}" rx="9" ry="6.2" fill="${noteC}" transform="rotate(-15 ${x} ${noteY})"/>`;
-        s += `<text x="${x}" y="${noteY+21}" text-anchor="middle" fill="${col}" font-size="12" font-weight="700" font-family="Inter,sans-serif">${h}</text>`;
+        s += `<line x1="${x+6}" y1="${noteY-5}" x2="${x+6}" y2="${beamY}" stroke="${noteC}" stroke-width="2" stroke-linecap="round"/>`;
+        s += `<ellipse cx="${x}" cy="${noteY}" rx="8" ry="5.8" fill="${noteC}" transform="rotate(-15 ${x} ${noteY})"/>`;
+        s += `<text x="${x}" y="${noteY+22}" text-anchor="middle" fill="${noteC}" font-size="12" font-weight="700" font-family="Inter,sans-serif">${h}</text>`;
         s += `</g>`;
         x += noteW;
         globalBeat++;
       });
     });
   });
-
-  // Barline centred in barGap between the two measures
-  const barX = lPad + measureW + barGap / 2; // 354
-  s += `<line x1="${barX}" y1="${beamY-4}" x2="${barX}" y2="${noteY+8}" stroke="${barC}" stroke-width="1.5" stroke-linecap="round"/>`;
 
   s += '</svg>';
   return `<div class="beat-wrap"><div class="playhead"></div>${s}</div>`;
@@ -400,7 +459,8 @@ function buildBeatSVG(groups){
 function renderCard(dir){
   const p = ALL[currentIdx];
   document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
-  document.getElementById('patternName').textContent = p.beats.replace(/\|/g,' · ');
+  const pn = document.getElementById('patternName');
+  if(pn) pn.textContent = p.beats.replace(/\|/g,' · ');
   document.getElementById('doneBtn').classList.toggle('active', done.has(currentIdx));
 
   // Build beat display
@@ -435,8 +495,10 @@ function navigate(dir){
 
 function updateNavArrows(){
   const fi = filteredIdxs.indexOf(currentIdx);
-  document.getElementById('navPrev').disabled = fi <= 0;
-  document.getElementById('navNext').disabled = fi >= filteredIdxs.length - 1;
+  const prev = document.getElementById('navPrev');
+  const next = document.getElementById('navNext');
+  if(prev) prev.disabled = fi <= 0;
+  if(next) next.disabled = fi >= filteredIdxs.length - 1;
 }
 
 /* ── Progress ── */
