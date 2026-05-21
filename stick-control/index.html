@@ -23,6 +23,10 @@
   <h1 class="page-title">Stick Control</h1>
   <p class="page-subtitle">Por George Lawrence Stone</p>
 
+  <div class="view-toggle" id="viewToggle">
+    <button class="view-toggle-btn active" data-view="practica" onclick="setViewMode('practica')">Práctica</button>
+    <button class="view-toggle-btn" data-view="biblioteca" onclick="setViewMode('biblioteca')">Biblioteca</button>
+  </div>
 
   <div class="page-picker" id="pagePicker"></div>
 
@@ -47,16 +51,17 @@
             </div>
             <button class="repeat-btn" id="repeatBtn" onclick="requestRepeat()">&#x21A9; Repetir</button>
             <div class="right-controls">
-              <span class="mode-label">Modos de práctica:</span>
-              <div class="bpm-trigger-wrap">
-                <button class="bpm-trigger" id="modeTrigger" onclick="toggleModeDropdown(event)">
-                  <span id="modeDisplay">Modo</span>
-                </button>
-                <div class="bpm-dropdown" id="modeDropdown">
-                  <button class="mode-opt" data-mode="biblioteca" onclick="setMode('biblioteca')">Biblioteca</button>
-                  <button class="mode-opt" data-mode="reps20" onclick="setMode('reps20')">20 repeticiones</button>
-                  <button class="mode-opt" data-mode="wait2" onclick="setMode('wait2')">Espera 2 compases</button>
-                  <button class="mode-opt" data-mode="wait4" onclick="setMode('wait4')">Espera 4 compases</button>
+              <div id="modeControls">
+                <span class="mode-label">Modos:</span>
+                <div class="bpm-trigger-wrap">
+                  <button class="bpm-trigger" id="modeTrigger" onclick="toggleModeDropdown(event)">
+                    <span id="modeDisplay">Modo</span>
+                  </button>
+                  <div class="bpm-dropdown" id="modeDropdown">
+                    <button class="mode-opt" data-mode="reps20" onclick="setMode('reps20')">20 repeticiones</button>
+                    <button class="mode-opt" data-mode="wait2" onclick="setMode('wait2')">Espera 2 compases</button>
+                    <button class="mode-opt" data-mode="wait4" onclick="setMode('wait4')">Espera 4 compases</button>
+                  </div>
                 </div>
               </div>
               <div class="bpm-trigger-wrap">

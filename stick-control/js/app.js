@@ -109,6 +109,8 @@ let bpm = 152;
 let isPlaying = false;
 let loopCount = 0;
 let currentMode  = 'reps20'; // 'biblioteca' | 'reps20' | 'wait2' | 'wait4'
+let viewMode          = 'practica'; // 'practica' | 'biblioteca'
+let savedPracticeMode = 'reps20';
 let waitLeft     = 0;  // eighth-note steps remaining in between-exercise wait phase
 let waitTotal    = 0;  // total steps in current wait phase (for UI label)
 let repeatPending          = false; // "repeat last" pressed during exercise phase
@@ -434,6 +436,23 @@ function setMode(m){
   updateRepeatBtn();
   buildLibraryPanel();
 }
+function setViewMode(mode){
+  viewMode = mode;
+  document.querySelectorAll('.view-toggle-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.view === mode));
+  const picker   = document.getElementById('pagePicker');
+  const controls = document.getElementById('modeControls');
+  if(mode === 'biblioteca'){
+    if(picker)   picker.classList.add('dimmed');
+    if(controls) controls.style.display = 'none';
+    savedPracticeMode = (currentMode !== 'biblioteca') ? currentMode : savedPracticeMode;
+    setMode('biblioteca');
+  } else {
+    if(picker)   picker.classList.remove('dimmed');
+    if(controls) controls.style.display = '';
+    setMode(savedPracticeMode);
+  }
+}
 function toggleModeDropdown(e){
   e.stopPropagation();
   document.getElementById('modeDropdown').classList.toggle('open');
@@ -533,10 +552,8 @@ function buildLibraryPanel(){
   if(!wrap) return;
   if(currentMode !== 'biblioteca'){
     wrap.classList.remove('open');
-    wrap.innerHTML = '';
     return;
   }
-  wrap.classList.add('open');
   wrap.innerHTML = '';
   filteredIdxs.forEach((allIdx)=>{
     const p = ALL[allIdx];
@@ -547,6 +564,7 @@ function buildLibraryPanel(){
     item.onclick = ()=>selectPattern(allIdx, allIdx > currentIdx ? 1 : -1);
     wrap.appendChild(item);
   });
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('open')));
 }
 
 function refreshLibraryPanel(){
@@ -668,6 +686,7 @@ function updateNavArrows(){
 function renderNextPreview(){
   const nextDisp = document.getElementById('beatDisplayNext');
   if(!nextDisp) return;
+  if(viewMode === 'biblioteca'){ nextDisp.innerHTML = ''; return; }
   const fi = filteredIdxs.indexOf(currentIdx);
   if(fi >= filteredIdxs.length - 1){ nextDisp.innerHTML = ''; return; }
   const p = ALL[filteredIdxs[fi + 1]];
@@ -783,7 +802,7 @@ function init(){
   renderCard();
   updateNavArrows();
   updateProgress();
-  setMode(currentMode); // apply default mode to button UI
+  setViewMode('practica'); // apply default view + mode
 }
 
 init();
