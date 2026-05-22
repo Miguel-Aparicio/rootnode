@@ -119,6 +119,11 @@ let repeatAfterWaitPrevIdx = -1;    // prev exercise idx to insert after wait en
 let currentBeat = 0;
 let opts = { accent: true, sound: true };
 
+/* ── Session timer ── */
+let timerRafId2    = null;  // rAF handle for countdown
+let timerRemStart  = 0;     // remaining seconds at play start
+let timerWallStart = 0;     // Date.now() when play started
+
 /* ── Web Audio Metronome ── */
 let audioCtx = null;
 let schedulerTimer = null;
@@ -257,6 +262,7 @@ function startPlay(){
   phNoteStart = nextNoteTime;
   phNoteDur   = (60.0 / bpm) * 0.5;
   if(!playheadRafId) playheadRafId = requestAnimationFrame(drawPlayhead);
+  startTimer();
   scheduler();
   document.getElementById('playBtn').classList.add('playing');
   document.getElementById('playBtn').innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
@@ -264,6 +270,7 @@ function startPlay(){
 
 function stopPlay(){
   isPlaying = false;
+  stopTimer();
   waitLeft  = 0;
   loopCount = 0;
   repeatPending = false;
@@ -378,6 +385,73 @@ function hideWaitRing(){
   updateModeCounter();
 }
 
+/* ── Session timer ── */
+function calcExerciseSecs(){
+  const nd = 0.5 * 60 / bpm; // eighth-note duration in seconds
+  if(currentMode === 'reps20') return 20 * 16 * nd;
+  if(currentMode === 'wait2')  return (16 + 16) * nd;
+  if(currentMode === 'wait4')  return (16 + 32) * nd;
+  return 20 * 16 * nd;
+}
+
+function calcRemainingTime(){
+  if(currentMode === 'biblioteca') return Infinity;
+  return filteredIdxs.length * calcExerciseSecs();
+}
+
+function calcPlayingRemaining(){
+  // Used only when starting play: counts from current position to end
+  if(currentMode === 'biblioteca') return Infinity;
+  const fi   = filteredIdxs.indexOf(currentIdx);
+  const left = fi >= 0 ? filteredIdxs.length - fi : filteredIdxs.length;
+  return left * calcExerciseSecs();
+}
+
+function fmtTime(secs){
+  if(!isFinite(secs)) return '∞';
+  secs = Math.ceil(Math.max(0, secs));
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function updateTimerEl(secs){
+  const el = document.getElementById('sessionTimer');
+  if(!el) return;
+  const val = (secs !== undefined) ? secs : calcRemainingTime();
+  el.textContent = fmtTime(val);
+  el.classList.toggle('infinity', !isFinite(val));
+  el.classList.toggle('running',  isPlaying && isFinite(val));
+}
+
+function tickTimer(){
+  if(!isPlaying){ timerRafId2 = null; return; }
+  const rem = Math.max(0, timerRemStart - (Date.now() - timerWallStart) / 1000);
+  updateTimerEl(rem);
+  timerRafId2 = requestAnimationFrame(tickTimer);
+}
+
+function startTimer(){
+  timerRemStart  = calcPlayingRemaining();
+  timerWallStart = Date.now();
+  if(timerRafId2) cancelAnimationFrame(timerRafId2);
+  timerRafId2 = requestAnimationFrame(tickTimer);
+}
+
+function stopTimer(){
+  if(timerRafId2){ cancelAnimationFrame(timerRafId2); timerRafId2 = null; }
+  updateTimerEl();
+}
+
+function refreshTimer(){
+  if(isPlaying){
+    timerRemStart  = calcPlayingRemaining();
+    timerWallStart = Date.now();
+  } else {
+    updateTimerEl();
+  }
+}
+
 function drawPlayhead(){
   if(!isPlaying){ playheadRafId = null; return; }
   const elapsed  = Math.max(0, audioCtx.currentTime - phNoteStart);
@@ -414,6 +488,7 @@ function setBpm(v){
   document.getElementById('bpmDisplay').textContent = bpm;
   document.getElementById('bpmSlider').value = bpm;
   updateTempoPresets();
+  refreshTimer();
 }
 
 /* ── BPM dropdown ── */
@@ -435,6 +510,7 @@ function setMode(m){
   updateModeCounter();
   updateRepeatBtn();
   buildLibraryPanel();
+  refreshTimer();
 }
 function setViewMode(mode){
   viewMode = mode;
@@ -539,7 +615,13 @@ function togglePage(id){
 
 function applyPageSelection(){
   updateFilteredIdxs();
-  if(!filteredIdxs.includes(currentIdx)) currentIdx = filteredIdxs[0] || 0;
+  if(isPlaying){
+    // While playing: preserve position if still valid, else fall back to first
+    if(!filteredIdxs.includes(currentIdx)) currentIdx = filteredIdxs[0] ?? 0;
+  } else {
+    // While stopped: always restart from the first exercise of the new selection
+    currentIdx = filteredIdxs[0] ?? 0;
+  }
   buildPagePicker();
   buildLibraryPanel();
   renderCard();
@@ -649,6 +731,7 @@ function renderCard(dir){
   void card.offsetWidth;
   if(dir===1)  card.classList.add('anim-in');
   if(dir===-1) card.classList.add('anim-in-r');
+  refreshTimer();
 }
 
 function selectPattern(allIdx, dir){
