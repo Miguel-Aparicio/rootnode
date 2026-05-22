@@ -317,6 +317,7 @@ function requestRepeat(){
     // During exercise: set flag to replay one more time at loop boundary
     repeatPending = true;
     if(btn) btn.classList.add('active');
+    addTimerBonus();
   } else {
     // During wait: after wait ends, go back to the previous exercise
     const fi = filteredIdxs.indexOf(currentIdx);
@@ -324,6 +325,7 @@ function requestRepeat(){
     repeatAfterWait        = true;
     repeatAfterWaitPrevIdx = filteredIdxs[fi - 1];
     if(btn) btn.classList.add('active');
+    addTimerBonus();
   }
 }
 
@@ -450,6 +452,27 @@ function refreshTimer(){
   } else {
     updateTimerEl();
   }
+}
+
+function addTimerBonus(){
+  const extra = calcExerciseSecs();
+  timerRemStart += extra;
+  const timerEl = document.getElementById('sessionTimer');
+  if(!timerEl) return;
+  // Flash the pill green
+  timerEl.classList.remove('bonus-flash');
+  void timerEl.offsetWidth;
+  timerEl.classList.add('bonus-flash');
+  setTimeout(() => timerEl.classList.remove('bonus-flash'), 750);
+  // Floating "+time" sprite anchored to the timer pill
+  const bonus = document.createElement('div');
+  bonus.className = 'timer-bonus';
+  bonus.textContent = '+' + fmtTime(extra);
+  const rect = timerEl.getBoundingClientRect();
+  bonus.style.left = (rect.left + rect.width / 2) + 'px';
+  bonus.style.top  = rect.top + 'px';
+  document.body.appendChild(bonus);
+  bonus.addEventListener('animationend', () => bonus.remove());
 }
 
 function drawPlayhead(){
