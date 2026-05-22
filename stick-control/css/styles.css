@@ -30,6 +30,7 @@ nav {
   display: flex; align-items: center; gap: 0.55rem;
   padding: 0.85rem 1.75rem;
   background: rgba(8,15,26,0.85);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 20;
@@ -488,22 +489,19 @@ kbd { display: inline-block; padding: 0.05rem 0.3rem; border: 1px solid var(--bo
 
 /* ── Page transitions ── */
 @keyframes pageEnter {
-  from { opacity: 0; transform: scale(0.97) translateY(8px); filter: blur(3px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
+  from { opacity: 0; transform: scale(0.97) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
 }
 @keyframes pageExit {
-  from { opacity: 1; transform: scale(1);    filter: blur(0);   }
-  to   { opacity: 0; transform: scale(0.98); filter: blur(3px); }
+  from { opacity: 1; }
+  to   { opacity: 0; transform: scale(0.98); }
 }
-/* Start invisible; JS adds .page-loaded after first paint to trigger enter */
-body {
-  opacity: 0;
-}
+/* body visible by default — page-loaded adds the enter animation */
 body.page-loaded {
-  animation: pageEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pageEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 body.page-exit {
-  animation: pageExit 0.32s ease-out both;
+  animation: pageExit 0.28s ease-out both;
   pointer-events: none;
 }
 

@@ -810,9 +810,7 @@ init();
 (function () {
   /* Fade-in on load */
   requestAnimationFrame(function () {
-    requestAnimationFrame(function () {
-      document.body.classList.add('page-loaded');
-    });
+    document.body.classList.add('page-loaded');
   });
 
   document.querySelectorAll('a[href]').forEach(function (a) {
