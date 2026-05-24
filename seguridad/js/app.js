@@ -593,12 +593,10 @@ function renderNetwork(net) {
   setNum ('net-conns',  net.connections || 0);
   setNum ('net-estab',  net.established || 0);
 
-  const ports = (net.listening_ports || []).join(', ');
-  setText('net-ports', ports || '—');
-
   updateNetChart(net.history);
   renderConnectionDetail(net.established_detail);
   renderNetworkSummary(net);
+  renderListeningPorts(net.listening_ports_detail);
 }
 
 function renderNetworkSummary(net) {
@@ -608,7 +606,9 @@ function renderNetworkSummary(net) {
   const internet = detail.filter(conn => String(conn?.location || '').toUpperCase() === 'INTERNET').length;
   const lan = detail.filter(conn => String(conn?.location || '').toUpperCase() === 'LAN').length;
   const suspicious = detail.filter(isPotentialIntrusionConn).length;
-  const portsCount = Array.isArray(net?.listening_ports) ? net.listening_ports.length : 0;
+  const portsCount = Array.isArray(net?.listening_ports_detail)
+    ? net.listening_ports_detail.length
+    : (Array.isArray(net?.listening_ports) ? net.listening_ports.length : 0);
   const totalRate = Number(net?.recv_rate || 0) + Number(net?.sent_rate || 0);
 
   setText('net-ports-count', String(portsCount));
@@ -618,6 +618,29 @@ function renderNetworkSummary(net) {
   setText('net-lan', String(lan));
   setText('net-suspicious', String(suspicious));
   setText('net-total-rate', `${fmtBytes(totalRate)}/s`);
+}
+
+function renderListeningPorts(detail) {
+  const el = document.getElementById('net-ports-list');
+  if (!el) return;
+  const PUBLIC_PORTS = [22, 80, 443];
+  const filtered = Array.isArray(detail)
+    ? detail.filter(p => PUBLIC_PORTS.includes(p.port))
+    : [];
+  if (!filtered.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = filtered.map(p => {
+    const badgeCls = p.exposed ? 'port-badge-exp' : 'port-badge-loc';
+    const badgeTxt = p.exposed ? 'pública' : 'local';
+    const desc     = p.description || p.service || '—';
+    return `
+      <div class="net-port-row">
+        <span class="port-num">${esc(String(p.port))}</span>
+        <span class="port-svc">${esc(p.service || '?')}</span>
+        <span class="port-desc">${esc(desc)}</span>
+        <span class="port-badge ${badgeCls}">${badgeTxt}</span>
+      </div>`;
+  }).join('');
 }
 
 const CONN_TYPE_META = {
@@ -633,7 +656,10 @@ function renderConnectionDetail(detail) {
   const list = document.getElementById('conn-detail-list');
   if (!list) return;
 
-  const established = Array.isArray(detail) ? detail : [];
+  const PUBLIC_PORTS = [22, 80, 443];
+  const established = (Array.isArray(detail) ? detail : [])
+    .filter(c => PUBLIC_PORTS.includes(c.local_port) || PUBLIC_PORTS.includes(c.remote_port));
+
   if (!established.length) {
     list.innerHTML = '<div class="conn-none conn-ok">Verificado: no hay intrusiones detectadas.</div>';
     return;

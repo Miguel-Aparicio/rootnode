@@ -592,6 +592,40 @@ main { padding: 1.2rem 1.2rem 0; max-width: 1500px; margin: 0 auto; }
 .lbl { color: var(--text3); font-size: 0.68rem; }
 .mono { font-family: var(--mono); }
 
+/* ── Listening Ports Detail ──────────────────────────────────────────────── */
+.net-ports-list {
+  display: flex; flex-direction: column; gap: 0.18rem;
+  margin-top: 0.55rem;
+}
+.net-port-row {
+  display: grid;
+  grid-template-columns: 2.6rem 5.5rem 1fr auto;
+  align-items: center; gap: 0.5rem;
+  padding: 0.28rem 0.55rem;
+  background: var(--card2);
+  border-radius: 0.4rem;
+  border: 1px solid var(--border);
+  font-size: 0.68rem;
+}
+.port-num {
+  font-family: var(--mono); font-weight: 700;
+  color: var(--text1); text-align: right;
+}
+.port-svc {
+  font-family: var(--mono); font-size: 0.64rem;
+  color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.port-desc { color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.port-badge {
+  font-size: 0.58rem; font-weight: 600;
+  padding: 0.1rem 0.38rem;
+  border-radius: 0.25rem;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.port-badge-exp { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.28); }
+.port-badge-loc { background: rgba(120,120,140,0.15); color: var(--text3);  border: 1px solid var(--border); }
+
 /* ── Top Attackers ───────────────────────────────────────────────────────── */
 .attackers-list { display: flex; flex-direction: column; gap: 0.35rem; }
 .attacker-row {
