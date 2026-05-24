@@ -661,8 +661,14 @@ function isPotentialIntrusionConn(conn) {
   const location = String(conn?.location || '').toUpperCase();
   const direction = String(conn?.direction || '').toLowerCase();
 
-  if (type === 'unknown') return true;
-  if (location === 'INTERNET' && direction === 'inbound' && !['web', 'self', 'vscode'].includes(type)) {
+  const knownTypes = ['web', 'self', 'vscode', 'local', 'system'];
+
+  // Inbound from internet on a service not in the known-safe list
+  if (direction === 'inbound' && location === 'INTERNET' && !knownTypes.includes(type)) {
+    return true;
+  }
+  // Outbound to internet from an unrecognised process AND unrecognised port
+  if (direction === 'outbound' && location === 'INTERNET' && type === 'unknown') {
     return true;
   }
   return false;
@@ -709,9 +715,9 @@ function renderSessions(sess) {
       list.innerHTML = sess.active.map(u => `
         <div class="session-row">
           <span class="session-dot"></span>
-          <span class="session-user">${esc(u.user)}</span>
           <span class="session-tty">${esc(u.terminal)}</span>
           <span class="session-host">${esc(u.host)}</span>
+          <span class="session-time">${esc(u.started)}</span>
         </div>`).join('');
     }
   }
@@ -719,7 +725,7 @@ function renderSessions(sess) {
   const logins = document.getElementById('recent-logins');
   if (logins && sess.recent?.length) {
     logins.innerHTML = sess.recent.slice(0, 6).map(l =>
-      `<div class="login-row"><span class="login-user">${esc(l.user)}</span>  ${esc(l.raw.slice(l.user.length).trim())}</div>`
+      `<div class="login-row">${esc(l.raw)}</div>`
     ).join('');
   }
 }
