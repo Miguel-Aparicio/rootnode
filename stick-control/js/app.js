@@ -117,6 +117,7 @@ let repeatPending          = false; // "repeat last" pressed during exercise pha
 let repeatAfterWait        = false; // "repeat last" pressed during wait phase
 let repeatAfterWaitPrevIdx = -1;    // prev exercise idx to insert after wait ends
 let currentBeat = 0;
+let countdownLeft = 0; // quarter-note beats remaining in pre-exercise countdown
 let opts = { accent: true, sound: true };
 
 /* ── Session timer ── */
@@ -163,6 +164,20 @@ function scheduler(){
     const pat = currentPattern(); // re-fetched each note — enables seamless pattern switching
     const len = pat.length;
     const t = nextNoteTime;
+
+    // ── Countdown phase: 1 measure (4 beats) before first exercise ──
+    if(countdownLeft > 0){
+      const step = 4 - countdownLeft;
+      const symbols = ['3','2','1','Y'];
+      const qBeat = 60.0 / bpm;
+      scheduleClick(t, step === 0); // accent on beat 1
+      const d = Math.max(0, (t - audioCtx.currentTime) * 1000 - 8);
+      const sym = symbols[step];
+      setTimeout(() => showCountdownSymbol(sym, qBeat), d);
+      nextNoteTime += qBeat;
+      countdownLeft--;
+      continue;
+    }
 
     // ── Wait phase: blank measures between exercises (wait2 / wait4 modes) ──
     if(waitLeft > 0){
@@ -251,6 +266,7 @@ function startPlay(){
   scheduledBeatPos = 0;
   loopCount    = 0;
   waitLeft     = 0;
+  countdownLeft = (currentMode !== 'biblioteca') ? 4 : 0;
   repeatPending = false;
   repeatAfterWait = false;
   repeatAfterWaitPrevIdx = -1;
@@ -271,11 +287,13 @@ function startPlay(){
 function stopPlay(){
   isPlaying = false;
   stopTimer();
-  waitLeft  = 0;
+  waitLeft      = 0;
+  countdownLeft = 0;
   loopCount = 0;
   repeatPending = false;
   repeatAfterWait = false;
   repeatAfterWaitPrevIdx = -1;
+  hideCountdownOverlay();
   if(playheadRafId){ cancelAnimationFrame(playheadRafId); playheadRafId = null; }
   clearTimeout(schedulerTimer);
   clearAllBeats();
@@ -375,6 +393,24 @@ function setWaitRing(progress){
   void fill.getBoundingClientRect(); // reflow to restart
   fill.style.animation =
     `wait-ring-flash 0.38s ease-out forwards, wait-ring-deplete ${totalDur}s linear forwards`;
+}
+
+/* ── Countdown overlay helpers ── */
+function showCountdownSymbol(sym, beatDurSec){
+  const el = document.getElementById('countdownOverlay');
+  if(!el) return;
+  el.textContent = sym;
+  el.style.animation = 'none';
+  void el.getBoundingClientRect();
+  el.style.animation = `countdown-beat ${beatDurSec.toFixed(3)}s ease-in-out forwards`;
+}
+
+function hideCountdownOverlay(){
+  const el = document.getElementById('countdownOverlay');
+  if(!el) return;
+  el.style.animation = 'none';
+  el.style.opacity   = '0';
+  el.textContent     = '';
 }
 
 function hideWaitRing(){
@@ -734,10 +770,16 @@ function buildBeatSVG(groups){
   return `<div class="beat-wrap"><div class="playhead"></div>${s}</div>`;
 }
 
+/* ── Pattern header label ── */
+function exLabel(p){
+  const last = ALL[filteredIdxs[filteredIdxs.length - 1]];
+  return `${p.secName} · Ej ${p.ex} / ${last.ex}`;
+}
+
 /* ── Card render ── */
 function renderCard(dir){
   const p = ALL[currentIdx];
-  document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
+  document.getElementById('patternEx').textContent = exLabel(p);
   const pn = document.getElementById('patternName');
   if(pn) pn.textContent = p.beats.replace(/\|/g,' · ');
   document.getElementById('doneBtn')?.classList.toggle('active', done.has(currentIdx));
@@ -801,7 +843,12 @@ function renderNextPreview(){
 
 function doSeamlessAdvance(transitionAudioTime){
   const fi = filteredIdxs.indexOf(currentIdx);
-  if(fi >= filteredIdxs.length - 1) return; // already at last exercise
+  if(fi >= filteredIdxs.length - 1){
+    // Last exercise finished — stop player and celebrate
+    const delay = Math.max(0, (transitionAudioTime - audioCtx.currentTime) * 1000 - 16);
+    setTimeout(() => { stopPlay(); triggerSessionComplete(); }, delay);
+    return;
+  }
   currentIdx = filteredIdxs[fi + 1];
   loopCount  = 0;
   // Fire visual slide to coincide with the audio beat
@@ -818,7 +865,7 @@ function triggerSlideTransition(){
   if(!nextDisp || !nextDisp.firstElementChild){
     const p = ALL[currentIdx];
     disp.innerHTML = buildBeatSVG(groupsOf(p));
-    document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
+    document.getElementById('patternEx').textContent = exLabel(p);
     document.getElementById('doneBtn')?.classList.toggle('active', done.has(currentIdx));
     renderNextPreview(); refreshLibraryPanel(); updateNavArrows();
     return;
@@ -844,7 +891,7 @@ function triggerSlideTransition(){
     // Render new current exercise
     const p = ALL[currentIdx];
     disp.innerHTML = buildBeatSVG(groupsOf(p));
-    document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
+    document.getElementById('patternEx').textContent = exLabel(p);
     document.getElementById('doneBtn')?.classList.toggle('active', done.has(currentIdx));
     renderNextPreview(); refreshLibraryPanel(); updateNavArrows();
     // Fade in new next preview
@@ -863,7 +910,7 @@ function triggerFadeTransition(){
   const nextDisp = document.getElementById('beatDisplayNext');
   const p = ALL[currentIdx];
   disp.innerHTML = buildBeatSVG(groupsOf(p));
-  document.getElementById('patternEx').textContent = `${p.secName} · Ejercicio ${p.ex}`;
+  document.getElementById('patternEx').textContent = exLabel(p);
   document.getElementById('doneBtn')?.classList.toggle('active', done.has(currentIdx));
   renderNextPreview();
   // Quick fade-in on the new content
@@ -912,6 +959,89 @@ function init(){
 }
 
 init();
+
+/* ── Session complete ── */
+function playLevelUpSound(){
+  initAudio();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  // Rising major arpeggio: C5 E5 G5 C6
+  const freqs = [523.25, 659.25, 783.99, 1046.50];
+  const t0 = audioCtx.currentTime + 0.05;
+  freqs.forEach((freq, i) => {
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    const t   = t0 + i * 0.13;
+    const dur = i === freqs.length - 1 ? 0.65 : 0.18;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.38, t + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  });
+}
+
+function launchConfetti(){
+  const canvas = document.getElementById('confettiCanvas');
+  if(!canvas) return;
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx2   = canvas.getContext('2d');
+  const colors = ['#38bdf8','#60a5fa','#f87171','#facc15','#4ade80','#c084fc','#fb923c'];
+  const particles = Array.from({length: 88}, () => ({
+    x:        Math.random() * canvas.width,
+    y:        -12 - Math.random() * 120,
+    vx:       (Math.random() - 0.5) * 4.5,
+    vy:       2.2 + Math.random() * 3.2,
+    rot:      Math.random() * Math.PI * 2,
+    rotSpeed: (Math.random() - 0.5) * 0.14,
+    w:        7  + Math.random() * 9,
+    h:        3.5 + Math.random() * 5,
+    color:    colors[Math.floor(Math.random() * colors.length)],
+    gravity:  0.07 + Math.random() * 0.06,
+    drag:     0.994,
+  }));
+  canvas.classList.add('active');
+  const overlay = document.getElementById('completionOverlay');
+  if(overlay){ overlay.setAttribute('aria-hidden','false'); overlay.classList.add('active'); }
+  const DURATION = 3600;
+  let startTime = null;
+  function draw(ts){
+    if(!startTime) startTime = ts;
+    const elapsed = ts - startTime;
+    ctx2.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x  += p.vx;
+      p.y  += p.vy;
+      p.vy += p.gravity;
+      p.vx *= p.drag;
+      p.rot += p.rotSpeed;
+      ctx2.save();
+      ctx2.translate(p.x, p.y);
+      ctx2.rotate(p.rot);
+      ctx2.fillStyle = p.color;
+      ctx2.globalAlpha = Math.max(0, 1 - elapsed / DURATION);
+      ctx2.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx2.restore();
+    });
+    if(elapsed < DURATION){
+      requestAnimationFrame(draw);
+    } else {
+      canvas.classList.remove('active');
+      if(overlay){ overlay.classList.remove('active'); overlay.setAttribute('aria-hidden','true'); }
+      ctx2.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+  requestAnimationFrame(draw);
+}
+
+function triggerSessionComplete(){
+  playLevelUpSound();
+  launchConfetti();
+}
 
 (function () {
   /* Fade-in on load */
